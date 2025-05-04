@@ -17,6 +17,10 @@ const memberRoutes = async (server: FastifyInstance) => {
   server.get("/naver", memberController.naverAuthRedirect);
   server.get("/naver/callback", memberController.naverCallback);
 
+  // ✅ Google OAuth
+  server.get("/google", memberController.googleAuthRedirect);
+  server.get("/google/callback", memberController.googleCallback);
+
   // ✅ Logout (requires auth middleware)
   server.post(
     "/logout",

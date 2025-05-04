@@ -30,6 +30,7 @@ export const initializeMemberController = (fastify: FastifyInstance) => {
       const { code } = request.query as { code: string };
 
       try {
+        console.log("Kakao auth");
         const tokenRes = await axios.post(
           "https://kauth.kakao.com/oauth/token",
           new URLSearchParams({
@@ -97,6 +98,7 @@ export const initializeMemberController = (fastify: FastifyInstance) => {
       const { code, state } = request.query as { code: string; state: string };
 
       try {
+        console.log("Naver auth");
         const tokenRes = await axios.get(
           `https://nid.naver.com/oauth2.0/token`,
           {
@@ -149,6 +151,91 @@ export const initializeMemberController = (fastify: FastifyInstance) => {
       } catch (error) {
         console.error("Naver callback error:", error);
         reply.status(500).send({ error: "Naver authentication failed" });
+      }
+    },
+
+    googleAuthRedirect: async (
+      request: FastifyRequest,
+      reply: FastifyReply
+    ) => {
+      const rootUrl = "https://accounts.google.com/o/oauth2/v2/auth";
+      const options: any = {
+        redirect_uri: process.env.GOOGLE_REDIRECT_URI,
+        client_id: process.env.GOOGLE_CLIENT_ID,
+        access_type: "offline",
+        response_type: "code",
+        prompt: "consent",
+        scope: [
+          "https://www.googleapis.com/auth/userinfo.profile",
+          "https://www.googleapis.com/auth/userinfo.email",
+        ].join(" "),
+      };
+
+      const qs = new URLSearchParams(options);
+      const url = `${rootUrl}?${qs.toString()}`;
+      reply.redirect(url);
+    },
+
+    googleCallback: async (request: FastifyRequest, reply: FastifyReply) => {
+      const { code } = request.query as { code: string };
+
+      try {
+        console.log("Google auth");
+        // 1. Get access token
+        const tokenRes = await axios.post(
+          "https://oauth2.googleapis.com/token",
+          new URLSearchParams({
+            code,
+            client_id: process.env.GOOGLE_CLIENT_ID!,
+            client_secret: process.env.GOOGLE_CLIENT_SECRET!,
+            redirect_uri: process.env.GOOGLE_REDIRECT_URI!,
+            grant_type: "authorization_code",
+          }),
+          { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
+        );
+
+        const accessToken = tokenRes.data.access_token;
+
+        // 2. Get user info
+        const userInfo = await axios.get(
+          "https://www.googleapis.com/oauth2/v2/userinfo",
+          {
+            headers: { Authorization: `Bearer ${accessToken}` },
+          }
+        );
+
+        const googleData = userInfo.data;
+        const googleId = googleData.id;
+        const memberEmail = googleData.email;
+        const memberNickname = googleData.name || "Google User";
+        const memberImage = googleData.picture || "";
+
+        // 3. Find or create user
+        let member = await memberModel.findOne({
+          provider: "google",
+          providerId: googleId,
+        });
+
+        if (!member) {
+          member = await memberModel.create({
+            provider: "google",
+            providerId: googleId,
+            memberEmail: memberEmail,
+            memberNickname: memberNickname,
+            memberImage: memberImage,
+          });
+        }
+
+        // 4. Create JWT token
+        const memberObj: any = member.toObject();
+        const token = await authService.createToken(memberObj);
+
+        reply
+          .status(HttpCode.CREATED)
+          .send({ member: googleData, accessToken: token });
+      } catch (error) {
+        console.error("Google callback error:", error);
+        reply.status(500).send({ error: "Google authentication failed" });
       }
     },
 
