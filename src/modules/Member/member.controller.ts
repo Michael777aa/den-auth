@@ -56,8 +56,10 @@ export const initializeMemberController = (fastify: FastifyInstance) => {
           kakaoData.kakao_account?.profile?.profile_image_url || "";
 
         let member = await memberModel.findOne({
-          provider: "kakao",
-          providerId: kakaoId,
+          $or: [
+            { provider: "kakao", providerId: kakaoId },
+            { memberEmail: memberEmail },
+          ],
         });
 
         if (!member) {
@@ -68,6 +70,11 @@ export const initializeMemberController = (fastify: FastifyInstance) => {
             memberNickname: memberNickname,
             memberImage: memberImage,
           });
+        } else if (member.provider !== "kakao") {
+          member.provider = "kakao";
+          member.providerId = kakaoId;
+          member.memberImage = memberImage;
+          await member.save();
         }
 
         const memberObj: any = member.toObject();
@@ -76,9 +83,10 @@ export const initializeMemberController = (fastify: FastifyInstance) => {
         reply
           .status(HttpCode.CREATED)
           .send({ member: kakaoData, accessToken: token });
-      } catch (error) {
-        console.error("Kakao callback error:", error);
-        reply.status(500).send({ error: "Kakao authentication failed" });
+      } catch (err) {
+        console.error("Error: SignUp", err);
+        if (err instanceof Errors) reply.status(err.code).send(err);
+        else reply.status(Errors.standard.code).send(Errors.standard);
       }
     },
 
@@ -127,8 +135,10 @@ export const initializeMemberController = (fastify: FastifyInstance) => {
         const memberImage = profile.profile_image || "";
 
         let member = await memberModel.findOne({
-          provider: "naver",
-          providerId: naverId,
+          $or: [
+            { provider: "naver", providerId: naverId },
+            { memberEmail: memberEmail },
+          ],
         });
 
         if (!member) {
@@ -139,6 +149,11 @@ export const initializeMemberController = (fastify: FastifyInstance) => {
             memberNickname: memberName,
             memberImage: memberImage,
           });
+        } else if (member.provider !== "naver") {
+          member.provider = "naver";
+          member.providerId = naverId;
+          member.memberImage = memberImage;
+          await member.save();
         }
 
         const memberObj: any = member.toObject();
@@ -148,9 +163,10 @@ export const initializeMemberController = (fastify: FastifyInstance) => {
           member: profile,
           accessToken: token,
         });
-      } catch (error) {
-        console.error("Naver callback error:", error);
-        reply.status(500).send({ error: "Naver authentication failed" });
+      } catch (err) {
+        console.error("Error: SignUp", err);
+        if (err instanceof Errors) reply.status(err.code).send(err);
+        else reply.status(Errors.standard.code).send(Errors.standard);
       }
     },
 
@@ -212,11 +228,14 @@ export const initializeMemberController = (fastify: FastifyInstance) => {
 
         // 3. Find or create user
         let member = await memberModel.findOne({
-          provider: "google",
-          providerId: googleId,
+          $or: [
+            { provider: "google", providerId: googleId }, // Check by Google ID first
+            { memberEmail: memberEmail }, // Then check by email
+          ],
         });
 
         if (!member) {
+          // Create new user if doesn't exist
           member = await memberModel.create({
             provider: "google",
             providerId: googleId,
@@ -224,6 +243,12 @@ export const initializeMemberController = (fastify: FastifyInstance) => {
             memberNickname: memberNickname,
             memberImage: memberImage,
           });
+        } else if (member.provider !== "google") {
+          // If user exists but with different provider, update with Google info
+          member.provider = "google";
+          member.providerId = googleId;
+          member.memberImage = memberImage;
+          await member.save();
         }
 
         // 4. Create JWT token
@@ -233,9 +258,10 @@ export const initializeMemberController = (fastify: FastifyInstance) => {
         reply
           .status(HttpCode.CREATED)
           .send({ member: googleData, accessToken: token });
-      } catch (error) {
-        console.error("Google callback error:", error);
-        reply.status(500).send({ error: "Google authentication failed" });
+      } catch (err) {
+        console.error("Error: SignUp", err);
+        if (err instanceof Errors) reply.status(err.code).send(err);
+        else reply.status(Errors.standard.code).send(Errors.standard);
       }
     },
 
@@ -271,6 +297,7 @@ export const initializeMemberController = (fastify: FastifyInstance) => {
       reply: FastifyReply
     ) => {
       try {
+        console.log("Login");
         const input = request.body;
         const result = await memberService.login(input);
         const token = await authService.createToken(result);
@@ -293,6 +320,7 @@ export const initializeMemberController = (fastify: FastifyInstance) => {
 
     logout: async (request: FastifyRequest, reply: FastifyReply) => {
       try {
+        console.log("Logout");
         reply.clearCookie("accessToken", { path: "/" });
         reply.status(HttpCode.OK).send({ logout: true });
       } catch (err) {
@@ -314,6 +342,7 @@ export const initializeMemberController = (fastify: FastifyInstance) => {
 
     deleteAccount: async (request: FastifyRequest, reply: FastifyReply) => {
       try {
+        console.log("deleteAccount");
         const member = (request as any).member;
         const memberId = shapeIntoMongooseObjectId(member._id);
         await memberModel.findByIdAndRemove(memberId);
