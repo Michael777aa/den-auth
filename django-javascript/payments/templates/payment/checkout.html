@@ -1,0 +1,190 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="https://static.toss.im/icons/png/4x/icon-toss-logo.png" />
+    <link rel="stylesheet" href="{% static 'style.css' %}" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>토스페이먼츠 샘플 프로젝트</title>
+    <!-- SDK 추가 -->
+    <script src="https://js.tosspayments.com/v2/standard"></script>
+  </head>
+
+  <body>
+    <!-- 주문서 영역 -->
+    <div class="wrapper">
+      <div class="box_section" style="padding: 40px 30px 50px 30px; margin-top: 30px; margin-bottom: 50px">
+        <h1>일반 결제</h1>
+        <!-- 결제 UI -->
+        <div id="payment-method" style="display: flex">
+          <button id="CARD" class="button2" onclick="selectPaymentMethod('CARD')">카드</button>
+          <button id="TRANSFER" class="button2" onclick="selectPaymentMethod('TRANSFER')">계좌이체</button>
+          <button id="VIRTUAL_ACCOUNT" class="button2" onclick="selectPaymentMethod('VIRTUAL_ACCOUNT')">가상계좌</button>
+          <button id="MOBILE_PHONE" class="button2" onclick="selectPaymentMethod('MOBILE_PHONE')">휴대폰</button>
+          <button id="CULTURE_GIFT_CERTIFICATE" class="button2" onclick="selectPaymentMethod('CULTURE_GIFT_CERTIFICATE')">문화상품권</button>
+          <button id="FOREIGN_EASY_PAY" class="button2" onclick="selectPaymentMethod('FOREIGN_EASY_PAY')">해외간편결제</button>
+        </div>
+        <!-- 결제하기 버튼 -->
+        <button class="button" style="margin-top: 30px" onclick="requestPayment()">결제하기</button>
+      </div>
+      <div class="box_section" style="padding: 40px 30px 50px 30px; margin-top: 30px; margin-bottom: 50px">
+        <h1>정기 결제</h1>
+        <!-- 빌링 버튼 -->
+        <button class="button" style="margin-top: 30px" onclick="requestBillingAuth()">빌링키 발급하기</button>
+      </div>
+    </div>
+    <script>
+      let tossPayments = null; // SDK 인스턴스를 저장할 변수
+      let payment = null; // payment 객체를 저장할 변수
+      let orderInfo = {}; // 앱에서 전달받을 주문 정보를 저장할 객체
+      let selectedPaymentMethod = null;
+
+      // --- React Native 앱에서 호출할 함수 정의 ---
+      async function initializePayment(jsonDataString) {
+        console.log("RN으로부터 데이터 수신:", jsonDataString);
+        try {
+          orderInfo = JSON.parse(jsonDataString); // 전달받은 정보 저장
+
+          const amount = {
+            currency: "KRW",
+            value: orderInfo.amount, // 앱에서 받은 금액 사용
+          };
+
+          // ------  SDK 초기화 ------
+          // TODO: clientKey는 개발자센터의 API 개별 연동 키 > 결제창 연동 키로 바꾸세요.
+          const clientKey = "test_ck_D5GePWvyJnrK0W0k6q8gLzN97Eoq"; // 실제 운영 키로 교체 필요
+
+          // TODO: 구매자의 고유 아이디를 안전하게 customerKey로 설정하세요. 
+          //       아래 코드는 React Native 앱에서 orderInfo.customerKey를 전달받는 것을 가정합니다.
+          const customerKey = orderInfo.customerKey || generateRandomString(); // 앱에서 전달받은 값 사용
+          
+          tossPayments = TossPayments(clientKey);
+          payment = tossPayments.payment({ customerKey }); // payment 객체 생성 및 저장
+
+          console.log("Toss Payments SDK 초기화 완료");
+
+          // TODO: 필요하다면, 여기서 앱으로 초기화 완료 메시지를 보낼 수 있습니다.
+          // if (window.ReactNativeWebView) {
+          //   window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'initComplete' }));
+          // }
+
+        } catch (error) {
+          console.error("initializePayment 오류:", error);
+          if (window.ReactNativeWebView) {
+             window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'paymentError', status: 'fail', payload: { message: 'SDK 초기화 실패: ' + error.message } }));
+          }
+        }
+      }
+      // --- // React Native 앱에서 호출할 함수 정의 ---
+
+      // 결제 수단 선택 UI 로직 (기존과 유사)
+      function selectPaymentMethod(method) {
+        if (selectedPaymentMethod != null) {
+          document.getElementById(selectedPaymentMethod).style.backgroundColor = "#ffffff";
+        }
+        selectedPaymentMethod = method;
+        if (document.getElementById(selectedPaymentMethod)) {
+          document.getElementById(selectedPaymentMethod).style.backgroundColor = "rgb(229 239 255)";
+        }
+      }
+
+      // '결제하기' 버튼 클릭 시 동작 (이제 앱 데이터 사용)
+      async function requestPayment() {
+        if (!payment || !selectedPaymentMethod || !orderInfo.orderId) {
+          alert("결제 정보가 초기화되지 않았거나 결제 수단이 선택되지 않았습니다.");
+          // 앱으로 오류 전달 가능
+          if (window.ReactNativeWebView) {
+             window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'paymentError', status: 'fail', payload: { message: '결제 정보 미초기화 또는 결제 수단 미선택' } }));
+          }
+          return;
+        }
+
+        const successUrl = window.location.origin + "/payment/success";
+        const failUrl = window.location.origin + "/fail";
+        const commonParams = {
+            amount: { currency: "KRW", value: orderInfo.amount },
+            orderId: orderInfo.orderId,
+            orderName: orderInfo.orderName,
+            successUrl: successUrl,
+            failUrl: failUrl,
+            customerEmail: orderInfo.customerEmail,
+            customerName: orderInfo.customerName,
+        };
+
+        try {
+            switch (selectedPaymentMethod) {
+                case "CARD":
+                    await payment.requestPayment({ method: "CARD", ...commonParams, card: { useEscrow: false, flowMode: "DEFAULT", useCardPoint: false, useAppCardOnly: false } });
+                    break; // break 추가
+                case "TRANSFER":
+                    await payment.requestPayment({ method: "TRANSFER", ...commonParams, transfer: { cashReceipt: { type: "소득공제" }, useEscrow: false } });
+                    break; // break 추가
+                case "VIRTUAL_ACCOUNT":
+                    await payment.requestPayment({ method: "VIRTUAL_ACCOUNT", ...commonParams, virtualAccount: { cashReceipt: { type: "소득공제" }, useEscrow: false, validHours: 24 } });
+                    break; // break 추가
+                case "MOBILE_PHONE":
+                    await payment.requestPayment({ method: "MOBILE_PHONE", ...commonParams });
+                    break; // break 추가
+                case "CULTURE_GIFT_CERTIFICATE":
+                    await payment.requestPayment({ method: "CULTURE_GIFT_CERTIFICATE", ...commonParams });
+                    break; // break 추가
+                case "FOREIGN_EASY_PAY": // 해외 간편 결제는 금액 처리 등 별도 주의 필요
+                    await payment.requestPayment({
+                        method: "FOREIGN_EASY_PAY",
+                        amount: { value: orderInfo.amount, currency: orderInfo.currency || "USD" }, // 통화 필요
+                        orderId: orderInfo.orderId,
+                        orderName: orderInfo.orderName,
+                        successUrl: successUrl,
+                        failUrl: failUrl,
+                        customerEmail: orderInfo.customerEmail,
+                        customerName: orderInfo.customerName,
+                        foreignEasyPay: { provider: "PAYPAL", country: "KR" }, // Provider 등 앱 정보 필요 가능성
+                    });
+                    break; // break 추가
+                default:
+                    alert("지원하지 않는 결제 수단입니다.");
+                    if (window.ReactNativeWebView) {
+                       window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'paymentError', status: 'fail', payload: { message: '지원하지 않는 결제 수단' } }));
+                    }
+                    break;
+            }
+        } catch (error) {
+            console.error("requestPayment 오류:", error);
+            if (window.ReactNativeWebView) {
+               window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'paymentError', status: 'fail', payload: { message: '결제 요청 실패: ' + error.message } }));
+            }
+        }
+      }
+
+      // 빌링키 발급 요청 (이 부분도 customerKey 등 앱 데이터 활용 가능)
+      async function requestBillingAuth() {
+        if (!payment || !orderInfo.customerKey) {
+            alert("결제 정보가 초기화되지 않았습니다."); return;
+        }
+        try {
+            await payment.requestBillingAuth({
+              method: "CARD",
+              successUrl: window.location.origin + "/payment/billing",
+              failUrl: window.location.origin + "/fail",
+              customerEmail: orderInfo.customerEmail,
+              customerName: orderInfo.customerName,
+              // customerKey는 payment 객체 생성 시 사용된 값이 내부적으로 활용됨
+            });
+        } catch (error) {
+            console.error("requestBillingAuth 오류:", error);
+             if (window.ReactNativeWebView) {
+               window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'paymentError', status: 'fail', payload: { message: '빌링키 발급 요청 실패: ' + error.message } }));
+            }
+        }
+      }
+
+      // 랜덤 문자열 생성 함수 (customerKey 예시용)
+      function generateRandomString() {
+        return window.btoa(Math.random()).slice(0, 20);
+      }
+    </script>
+  </body>
+</html>
