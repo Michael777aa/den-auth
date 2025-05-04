@@ -28,6 +28,7 @@ async function registerPlugins() {
     attachFieldsToBody: "keyValues",
     limits: { fileSize: 2000000 },
   });
+
   await app.register(cors, {
     origin: true,
     credentials: true,

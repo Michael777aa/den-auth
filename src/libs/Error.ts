@@ -21,6 +21,7 @@ export enum Message {
   WRONG_EMAIL = "Wrong Email entered, please try again!",
   NOT_AUTHENTICATED = "You are not authenticated, Please Login first!",
   TOKEN_CREATION_FAILED = "Token creation error!",
+  FILE_UPLOAD_ERROR = "Error during file upload",
 }
 class Errors extends Error {
   public code: HttpCode;
