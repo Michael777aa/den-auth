@@ -7,7 +7,7 @@ import sys
 script_dir = os.path.dirname(os.path.abspath(__file__))
 project_dir = os.path.join(script_dir, 'django-javascript')
 manage_py_script = os.path.join(project_dir, 'manage.py')
-port = "8001"
+port = "3106"
 
 # 운영체제에 따라 가상환경 내 Python 실행 파일 경로 설정
 if sys.platform == "win32":
