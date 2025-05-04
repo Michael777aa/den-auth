@@ -2,40 +2,106 @@ import { FastifyInstance, RouteHandlerMethod } from "fastify";
 import { initializeMemberController } from "./member.controller";
 
 const memberRoutes = async (server: FastifyInstance) => {
-  // Initialize the controller
   const memberController = initializeMemberController(server);
 
-  // ✅ Custom Email/Password
-  server.post("/signup", memberController.signup);
-  server.post("/login", memberController.login);
+  // Custom Email/Password
+  server.post(
+    "/signup",
+    {
+      schema: {
+        tags: ["Authentication"],
+        description: "Register a new member with email/password",
+        body: {
+          type: "object",
+          required: ["memberEmail", "memberPassword"],
+          properties: {
+            memberEmail: { type: "string", format: "email" },
+            memberPassword: { type: "string", minLength: 8 },
+            memberNickname: { type: "string" },
+          },
+        },
+        response: {
+          201: {
+            description: "Successful registration",
+            type: "object",
+            properties: {
+              token: { type: "string" },
+            },
+          },
+        },
+      },
+    },
+    memberController.signup
+  );
 
-  // ✅ Kakao OAuth
-  server.get("/kakao", memberController.kakaoAuthRedirect);
-  server.get("/kakao/callback", memberController.kakaoCallback);
+  server.post(
+    "/login",
+    {
+      schema: {
+        tags: ["Authentication"],
+        description: "Login with email/password",
+        body: {
+          type: "object",
+          required: ["memberEmail", "memberPassword"],
+          properties: {
+            memberEmail: { type: "string", format: "email" },
+            memberPassword: { type: "string" },
+          },
+        },
+      },
+    },
+    memberController.login
+  );
 
-  // ✅ Naver OAuth
-  server.get("/naver", memberController.naverAuthRedirect);
-  server.get("/naver/callback", memberController.naverCallback);
+  // OAuth endpoints
+  server.get(
+    "/kakao",
+    {
+      schema: {
+        tags: ["Authentication"],
+        description: "Initiate Kakao OAuth flow",
+        externalDocs: {
+          url: "https://developers.kakao.com",
+          description: "Kakao developer documentation",
+        },
+      },
+    },
+    memberController.kakaoAuthRedirect
+  );
 
-  // ✅ Logout (requires auth middleware)
+  // ... add similar schemas for other routes
+
+  // Protected routes
   server.post(
     "/logout",
-    { preHandler: [memberController.verifyAuth] },
+    {
+      preHandler: [memberController.verifyAuth],
+      schema: {
+        tags: ["Member"],
+        description: "Logout current session",
+        security: [{ bearerAuth: [] }],
+      },
+    },
     memberController.logout
   );
 
-  // ✅ Delete account (requires auth middleware)
-  server.post(
-    "/delete",
-    { preHandler: [memberController.verifyAuth] },
-    memberController.deleteAccount
-  );
-
-  // ✅ Update member (auth + file upload)
   server.post(
     "/update",
     {
       preHandler: [memberController.verifyAuth],
+      schema: {
+        tags: ["Member"],
+        description: "Update member profile",
+        consumes: ["multipart/form-data"],
+        security: [{ bearerAuth: [] }],
+        body: {
+          type: "object",
+          properties: {
+            memberNickname: { type: "string" },
+            memberImage: { type: "string", format: "binary" },
+          },
+        },
+      },
     },
     memberController.updateMember as RouteHandlerMethod
   );

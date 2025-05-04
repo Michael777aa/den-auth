@@ -6,6 +6,7 @@ import fastifyJwt from "@fastify/jwt";
 import fastifyCookie from "@fastify/cookie";
 import path from "path";
 import memberRoutes from "./modules/Member/member.route";
+import fastifySwagger from "@fastify/swagger";
 
 const app = fastify({
   ignoreTrailingSlash: true,
