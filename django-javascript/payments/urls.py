@@ -14,8 +14,8 @@ urlpatterns = [
     path('callback-auth', views.callback_auth),
     
     path('payment/billing', views.paymentBilling),
-    path('issue-billing-key', views.issueBillingKey),
-    path('confirm-billing', views.confirm_billing),
+    path('api/v1/issue-billing-key', views.issueBillingKey),
+    path('api/v1/confirm-billing', views.confirm_billing),
 
     path('fail', views.fail),
 ]
