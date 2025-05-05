@@ -1,0 +1,59 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="https://static.toss.im/icons/png/4x/icon-toss-logo.png" />
+    <link rel="stylesheet" href="{% static 'style.css' %}" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>토스페이먼츠 샘플 프로젝트</title>
+  </head>
+
+  <body>
+    <div id="info" class="box_section" style="width: 600px">
+      <img width="100px" src="https://static.toss.im/lotties/error-spot-no-loop-space-apng.png" />
+      <h2>결제를 실패했어요</h2>
+
+      <div class="p-grid typography--p" style="margin-top: 50px">
+        <div class="p-grid-col text--left"><b>에러메시지</b></div>
+        <div class="p-grid-col text--right" id="message">{{ message }}</div>
+      </div>
+      <div class="p-grid typography--p" style="margin-top: 10px">
+        <div class="p-grid-col text--left"><b>에러코드</b></div>
+        <div class="p-grid-col text--right" id="code">{{ code }}</div>
+      </div>
+      <div class="p-grid">
+        <button class="button p-grid-col5" onclick="location.href='https://docs.tosspayments.com/guides/payment/integration';">연동 문서</button>
+        <button class="button p-grid-col5" onclick="location.href='https://discord.gg/A4fRFXQhRu';" style="background-color: #e8f3ff; color: #1b64da">실시간 문의</button>
+      </div>
+    </div>
+  </body>
+
+  <script>
+    // --- 앱으로 결제 결과 전달 (postMessage) --- 
+    try {
+      const message = {
+        type: 'paymentResult',
+        status: 'fail',
+        payload: {
+          code: '{{ code }}',
+          message: '{{ message|escapejs }}' // 메시지에 특수문자가 있을 수 있으므로 escapejs 필터 사용
+        }
+      };
+      // targetOrigin을 '*' 대신 실제 앱의 origin으로 제한하는 것이 보안상 안전합니다.
+      // window.parent.postMessage(JSON.stringify(message), '*'); 
+      // React Native 환경에서는 아래 코드를 사용합니다.
+      if (window.ReactNativeWebView) {
+        window.ReactNativeWebView.postMessage(JSON.stringify(message));
+      } else {
+        // RN 환경이 아닐 경우 대비 (혹은 다른 웹뷰 환경)
+        console.warn("ReactNativeWebView is not available. Using parent.postMessage as fallback.");
+        window.parent.postMessage(JSON.stringify(message), '*'); // Fallback
+      }
+    } catch (e) {
+      console.error("postMessage 실패:", e); // 오류 로깅
+    }
+    // --- // 앱으로 결제 결과 전달 (postMessage) --- 
+  </script>
+</html>
