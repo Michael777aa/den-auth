@@ -306,9 +306,10 @@ export const initializeMemberController = (fastify: FastifyInstance) => {
           maxAge: AUTH_TIMER * 3600 * 1000,
           httpOnly: true,
           path: "/",
-          secure: process.env.NODE_ENV === "production",
+          // secure: process.env.NODE_ENV === "production",
           sameSite: "strict",
         });
+        console.log("RESULT", result);
 
         reply.status(HttpCode.OK).send({ member: result, accessToken: token });
       } catch (err) {

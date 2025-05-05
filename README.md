@@ -1,6 +1,6 @@
 # Car Washing Service API 🚗💦
 
-Fastify backend with JWT authentication, OAuth integration, and file uploads for a React Native car washing application
+Fastify backend with JWT authentication, OAuth integration.
 
 ## Features ✨
 
@@ -23,10 +23,10 @@ SECRET_TOKEN=your_jwt_secret_here
 REDIS_URL=your_redis_url
 MONGO_URL=mongodb://your_mongo_connection
 KAKAO_CLIENT_ID=your_kakao_id
-KAKAO_REDIRECT_URI=http://localhost:3000/api/v1/auth/kakao/callback
+KAKAO_REDIRECT_URI=http://localhost:3109/api/v1/auth/kakao/callback
 NAVER_CLIENT_ID=your_naver_id
 NAVER_CLIENT_SECRET=your_naver_secret
-NAVER_REDIRECT_URI=http://localhost:3000/api/v1/auth/naver/callback
+NAVER_REDIRECT_URI=http://localhost:3109/api/v1/auth/naver/callback
 ```
 
 ## Installation 🛠️
