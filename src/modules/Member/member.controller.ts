@@ -255,9 +255,7 @@ export const initializeMemberController = (fastify: FastifyInstance) => {
         const memberObj: any = member.toObject();
         const token = await authService.createToken(memberObj);
 
-        reply
-          .status(HttpCode.CREATED)
-          .send({ member: googleData, accessToken: token });
+        reply.status(HttpCode.CREATED).send({ accessToken: token, member });
       } catch (err) {
         console.error("Error: SignUp", err);
         if (err instanceof Errors) reply.status(err.code).send(err);
