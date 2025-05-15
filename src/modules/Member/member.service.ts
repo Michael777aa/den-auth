@@ -6,16 +6,18 @@ export class MemberService {
     try {
       // Find the member by provider and providerId (unique)
       let member = await memberModel.findOne({
-        memberEmail: user.email,
+        email: user.email,
       });
 
       if (!member) {
         // If no member found, create a new one
         member = new memberModel({
-          memberEmail: user.email,
-          memberNickname: user.name,
-          memberImage: user.picture || "",
-          email_verified: user.email_verified,
+          email: user.email,
+          name: user.name,
+          sub: user.sub,
+          picture: user.picture || "",
+          provider: user.provider,
+          exp: user.exp,
         });
 
         await member.save();
