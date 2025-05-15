@@ -6,7 +6,8 @@ export class MemberService {
     try {
       // Find the member by provider and providerId (unique)
       let member = await memberModel.findOne({
-        email: user.email,
+        provider: user.provider,
+        sub: user.sub,
       });
 
       if (!member) {

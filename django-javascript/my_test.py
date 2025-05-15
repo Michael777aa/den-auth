@@ -20,7 +20,7 @@ console_handler.setFormatter(log_formatter)
 logger.addHandler(console_handler)
 
 # --- 설정 ---
-BASE_URL = "http://localhost:3000/auth" # 서버 주소 (포트 포함)
+BASE_URL = "http://localhost:3118/auth" # 서버 주소 (포트 포함)
 HEADERS = {'Content-Type': 'application/json'}
 
 # --- 테스트용 데이터 생성 함수 ---

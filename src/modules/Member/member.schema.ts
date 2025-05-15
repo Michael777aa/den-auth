@@ -6,7 +6,6 @@ const memberSchema = new Schema(
   {
     email: {
       type: String,
-      index: { unique: true, sparse: true },
       required: true,
     },
     name: {
@@ -22,7 +21,7 @@ const memberSchema = new Schema(
     },
     provider: {
       type: String,
-      enum: Object.values(MemberProvider), // MemberProvider is an enum
+      enum: Object.values(MemberProvider),
       required: true,
     },
     exp: {
@@ -32,6 +31,9 @@ const memberSchema = new Schema(
   },
   { timestamps: true }
 );
+
+// Unique index on provider + sub (NOT email)
+memberSchema.index({ provider: 1, sub: 1 }, { unique: true });
 
 // Create the model based on the schema
 export const memberModel = mongoose.model("member", memberSchema);

@@ -1,6 +1,6 @@
 import fastify from "fastify";
 import cors from "@fastify/cors";
-import memberRoutes from "./modules/Member/member.route";
+import memberRoutes from "./modules/member/member.route";
 
 const app = fastify({
   ignoreTrailingSlash: true,
