@@ -5,7 +5,7 @@ It is optimized for use in mobile apps (including React Native) and standard web
 
 For more details, please refer to the README file below.
 
-# Fastify 소셜 인증 API
+# 세차 예약 앱
 
 이 프로젝트는 Fastify 기반으로 소셜 인증(구글, 카카오, 네이버), 세차장 위치 검색/예약, 결제 연동, 예약 관리 기능을 제공합니다.
 모바일 앱(React Native 포함)과 웹 환경 모두에 최적화되어 있습니다.
