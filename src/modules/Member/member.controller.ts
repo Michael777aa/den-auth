@@ -30,8 +30,26 @@ import {
 } from "../../libs/utils/constants";
 import { v4 as uuidv4 } from "uuid";
 
+// By centralizing all social authentication logic in a single controller, this approach reduces code duplication, simplifies debugging and maintenance, enhances scalability for adding more providers in the future, ensures a consistent API structure, and promotes better team collaboration by making the authentication flow transparent and organized.
+// 모든 소셜 인증 로직을 하나의 컨트롤러로 통합함으로써, 코드 중복을 줄이고 디버깅과 유지보수를 단순화하며, 향후 새로운 소셜 제공자 추가 시 확장성을 높이고, 일관된 API 구조를 보장하며, 인증 플로우가 투명하고 체계적으로 관리되어 팀 협업도 더욱 원활하게 만들 수 있습니다.
+
+/**
+ *
+ * Social Authentication Controller for Google, Kakao, Naver
+ * - Handles OAuth login, token exchange, user info retrieval, and token refresh.
+ * - Supports mobile (deep link) flows.
+ *
+ * 구글, 카카오, 네이버 소셜 인증 컨트롤러
+ * - OAuth 로그인, 토큰 발급, 사용자 정보 조회, 토큰 갱신 기능 포함
+ * - 모바일(딥링크) 플로우 지원
+ */
+
 const memberService = new MemberService();
 
+/**
+ * Google OAuth: Redirect user to Google consent page.
+ * 구글 인증: 사용자에게 구글 동의 페이지로 리디렉션
+ */
 export const googleAuthorizeHandler = async (
   request: FastifyRequest,
   reply: FastifyReply
@@ -62,6 +80,10 @@ export const googleAuthorizeHandler = async (
   return reply.redirect(`${GOOGLE_AUTH_URL}?${params.toString()}`);
 };
 
+/**
+ * Google OAuth: Handle callback after user consents.
+ * 구글 인증: 사용자 동의 후 콜백 처리
+ */
 export const googleCallbackHandler = async (
   request: FastifyRequest,
   reply: FastifyReply
@@ -85,6 +107,10 @@ export const googleCallbackHandler = async (
   return reply.redirect(redirectTo);
 };
 
+/**
+ * Google OAuth: Exchange code for tokens and return JWTs.
+ * 구글 인증: 코드로 토큰 교환 후 JWT 반환
+ */
 export const googleTokenHandler = async (
   request: FastifyRequest,
   reply: FastifyReply
@@ -164,6 +190,10 @@ export const googleTokenHandler = async (
   }
 };
 
+/**
+ * Kakao OAuth: Redirect user to Kakao consent page.
+ * 카카오 인증: 사용자에게 카카오 동의 페이지로 리디렉션
+ */
 export const kakaoAuthorizeHandler = async (
   request: FastifyRequest,
   reply: FastifyReply
@@ -196,6 +226,10 @@ export const kakaoAuthorizeHandler = async (
   return reply.redirect(`${KAKAO_AUTH_URL}?${params.toString()}`);
 };
 
+/**
+ * Kakao OAuth: Handle callback after user consents.
+ * 카카오 인증: 사용자 동의 후 콜백 처리
+ */
 export const kakaoCallbackHandler = async (
   request: FastifyRequest,
   reply: FastifyReply
@@ -224,6 +258,10 @@ export const kakaoCallbackHandler = async (
   return reply.redirect(redirectTo);
 };
 
+/**
+ * Kakao OAuth: Exchange code for tokens and return JWTs.
+ * 카카오 인증: 코드로 토큰 교환 후 JWT 반환
+ */
 export const kakaoTokenHandler = async (
   request: FastifyRequest,
   reply: FastifyReply
@@ -310,6 +348,11 @@ export const kakaoTokenHandler = async (
     refreshToken,
   });
 };
+
+/**
+ * Naver OAuth: Redirect user to Naver consent page.
+ * 네이버 인증: 사용자에게 네이버 동의 페이지로 리디렉션
+ */
 export const naverAuthorizeHandler = async (
   request: FastifyRequest,
   reply: FastifyReply
@@ -341,6 +384,10 @@ export const naverAuthorizeHandler = async (
   return reply.redirect(`${NAVER_AUTH_URL}?${params.toString()}`);
 };
 
+/**
+ * Naver OAuth: Handle callback after user consents.
+ * 네이버 인증: 사용자 동의 후 콜백 처리
+ */
 export const naverCallbackHandler = async (
   request: FastifyRequest,
   reply: FastifyReply
@@ -367,6 +414,10 @@ export const naverCallbackHandler = async (
   return reply.redirect(redirectTo);
 };
 
+/**
+ * Naver OAuth: Exchange code for tokens and return JWTs.
+ * 네이버 인증: 코드로 토큰 교환 후 JWT 반환
+ */
 export const naverTokenHandler = async (
   request: FastifyRequest,
   reply: FastifyReply
@@ -453,6 +504,10 @@ export const naverTokenHandler = async (
   });
 };
 
+/**
+ * Get user info from access token.
+ * 액세스 토큰에서 사용자 정보 조회
+ */
 export const userInfoHandler = async (
   request: FastifyRequest,
   reply: FastifyReply
@@ -480,6 +535,10 @@ export const userInfoHandler = async (
   }
 };
 
+/**
+ * Refresh access and refresh tokens.
+ * 액세스 및 리프레시 토큰 갱신
+ */
 export const refreshTokenHandler = async (
   request: FastifyRequest,
   reply: FastifyReply

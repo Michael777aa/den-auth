@@ -5,6 +5,7 @@ dotenv.config({
 import mongoose from "mongoose";
 import initApp from "./app";
 
+// 데이터베이스 연결 및 서버 시작
 // Database connection and server startup
 mongoose.set("strictQuery", false);
 mongoose

@@ -1,4 +1,4 @@
-#!/bin/bash
+`#!/bin/bash
 
 # PRODUCTION
 
@@ -30,3 +30,4 @@ echo "Production deployment complete!"
 
 # echo "Starting the application in development mode..."
 # pm2 start "npm run start:prod" --name=car-washing-service-dev
+`
