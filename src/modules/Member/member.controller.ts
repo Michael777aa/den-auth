@@ -1,33 +1,596 @@
-import { AuthUser } from "@/libs/utils/middleware";
-import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
+// member.controller.ts
+import { FastifyRequest, FastifyReply } from "fastify";
 import { MemberService } from "./member.service";
+import {
+  APP_SCHEME,
+  BASE_URL,
+  GOOGLE_AUTH_URL,
+  GOOGLE_CLIENT_ID,
+  GOOGLE_CLIENT_SECRET,
+  GOOGLE_REDIRECT_URI,
+  GOOGLE_TOKEN_URL,
+  KAKAO_AUTH_URL,
+  KAKAO_CLIENT_ID,
+  KAKAO_CLIENT_SECRET,
+  KAKAO_REDIRECT_URI,
+  KAKAO_TOKEN_URL,
+  KAKAO_USER_INFO_URL,
+  NAVER_AUTH_URL,
+  NAVER_CLIENT_ID,
+  NAVER_CLIENT_SECRET,
+  NAVER_REDIRECT_URI,
+  NAVER_TOKEN_URL,
+  NAVER_USER_INFO_URL,
+} from "../../libs/utils/constants";
+import * as jose from "jose";
+import {
+  JWT_EXPIRATION_TIME,
+  JWT_SECRET,
+  REFRESH_TOKEN_EXPIRY,
+} from "../../libs/utils/constants";
+import { v4 as uuidv4 } from "uuid";
 
-export function initializeAuthController(server: FastifyInstance) {
-  const memberService = new MemberService();
+const memberService = new MemberService();
 
-  return {
-    loginWithSocialToken: async (
-      request: FastifyRequest<{ Body: AuthUser }>,
-      reply: FastifyReply
-    ) => {
-      try {
-        const { email, name, picture, sub, provider, exp } = request.body;
+export const googleAuthorizeHandler = async (
+  request: FastifyRequest,
+  reply: FastifyReply
+) => {
+  if (!GOOGLE_CLIENT_ID) {
+    return reply.status(500).send({ error: "GOOGLE_CLIENT_ID is not set" });
+  }
+  const url = new URL(request.url, BASE_URL);
+  const stateParam = url.searchParams.get("state");
+  let platform;
+  const redirectUri = url.searchParams.get("redirect_uri");
 
-        if (!email || !provider || !name) {
-          return reply.status(400).send({ error: "Missing required fields" });
-        }
-        const result = await memberService.findOrCreateSocialMember({
-          email,
-          name,
-          picture,
-          sub,
-          provider,
-          exp,
-        });
-      } catch (err) {
-        console.error("Social login error", err);
-        return reply.status(500).send({ error: "Server error saving user" });
-      }
+  if (redirectUri === APP_SCHEME) {
+    platform = "mobile";
+  } else {
+    return reply.status(400).send({ error: "Invalid redirect URI" });
+  }
+
+  const state = platform + "|" + stateParam;
+  const params = new URLSearchParams({
+    client_id: GOOGLE_CLIENT_ID,
+    redirect_uri: GOOGLE_REDIRECT_URI,
+    response_type: "code",
+    scope: "openid profile email",
+    state,
+    prompt: "select_account",
+  });
+  return reply.redirect(`${GOOGLE_AUTH_URL}?${params.toString()}`);
+};
+
+export const googleCallbackHandler = async (
+  request: FastifyRequest,
+  reply: FastifyReply
+) => {
+  const { code, state: combinedPlatformAndState } = request.query as any;
+  if (!combinedPlatformAndState) {
+    return reply.status(400).send({ error: "Invalid state" });
+  }
+
+  const [platform, state] = combinedPlatformAndState.split("|");
+  const outgoingParams = new URLSearchParams({
+    code: code || "",
+    state: state || "",
+  });
+
+  const redirectTo =
+    platform === "web"
+      ? `${BASE_URL}?${outgoingParams.toString()}`
+      : `${APP_SCHEME}?${outgoingParams.toString()}`;
+
+  return reply.redirect(redirectTo);
+};
+
+export const googleTokenHandler = async (
+  request: FastifyRequest,
+  reply: FastifyReply
+) => {
+  const { code } = request.body as any;
+
+  if (!code) {
+    return reply.status(400).send({ error: "Missing authorization code" });
+  }
+
+  if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
+    return reply.status(400).send({
+      error: "Error on google client | google secret | google redirect",
+    });
+  }
+
+  try {
+    const tokenRes = await fetch(GOOGLE_TOKEN_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        client_id: GOOGLE_CLIENT_ID,
+        client_secret: GOOGLE_CLIENT_SECRET,
+        redirect_uri: GOOGLE_REDIRECT_URI,
+        grant_type: "authorization_code",
+        code,
+      }),
+    });
+    const data = await tokenRes.json();
+    if (!data.id_token) {
+      return reply.status(400).send({ error: "Missing ID token from Google" });
+    }
+
+    const decoded = jose.decodeJwt(data.id_token) as any;
+    const userInfo: any = {
+      ...decoded,
+      provider: "google",
+    };
+
+    const { exp, ...userInfoWithoutExp } = userInfo;
+    const sub = userInfo.sub;
+    const issuedAt = Math.floor(Date.now() / 1000);
+    const jti = uuidv4();
+
+    const accessToken = await new jose.SignJWT(userInfoWithoutExp)
+      .setProtectedHeader({ alg: "HS256" })
+      .setExpirationTime(JWT_EXPIRATION_TIME)
+      .setSubject(sub)
+      .setIssuedAt(issuedAt)
+      .sign(new TextEncoder().encode(JWT_SECRET));
+
+    const refreshToken = await new jose.SignJWT({
+      sub,
+      jti,
+      type: "refresh",
+      name: userInfo.name,
+      email: userInfo.email,
+      picture: userInfo.picture,
+      given_name: userInfo.given_name,
+      family_name: userInfo.family_name,
+      email_verified: userInfo.email_verified,
+    })
+      .setProtectedHeader({ alg: "HS256" })
+      .setExpirationTime(REFRESH_TOKEN_EXPIRY)
+      .setIssuedAt(issuedAt)
+      .sign(new TextEncoder().encode(JWT_SECRET));
+
+    await memberService.findOrCreateSocialMember(userInfo);
+
+    return reply.send({
+      accessToken,
+      refreshToken,
+    });
+  } catch (error) {
+    console.error("Google token error:", error);
+    return reply.status(500).send({ error: "Failed to process Google login" });
+  }
+};
+
+export const kakaoAuthorizeHandler = async (
+  request: FastifyRequest,
+  reply: FastifyReply
+) => {
+  if (!KAKAO_CLIENT_ID) {
+    return reply.status(500).send({ error: "KAKAO_CLIENT_ID is not set" });
+  }
+
+  const url = new URL(request.url, BASE_URL);
+  const redirectUri = url.searchParams.get("redirect_uri");
+  const state = url.searchParams.get("state");
+
+  let platform;
+  if (redirectUri === APP_SCHEME) {
+    platform = "mobile";
+  } else {
+    return reply.status(400).send({ error: "Invalid redirect URI" });
+  }
+
+  const combinedState = platform + "|" + state;
+
+  const params = new URLSearchParams({
+    client_id: KAKAO_CLIENT_ID,
+    redirect_uri: KAKAO_REDIRECT_URI,
+    response_type: "code",
+    state: combinedState,
+    prompt: "select_account",
+  });
+
+  return reply.redirect(`${KAKAO_AUTH_URL}?${params.toString()}`);
+};
+
+export const kakaoCallbackHandler = async (
+  request: FastifyRequest,
+  reply: FastifyReply
+) => {
+  const url = new URL(request.url, BASE_URL);
+
+  const code = url.searchParams.get("code");
+  const combinedPlatformAndState = url.searchParams.get("state");
+
+  if (!combinedPlatformAndState) {
+    return reply.status(400).send({ error: "Invalid state" });
+  }
+
+  const [platform, state] = combinedPlatformAndState.split("|");
+
+  const outgoingParams = new URLSearchParams({
+    code: code || "",
+    state,
+  });
+
+  const redirectTo =
+    platform === "web"
+      ? `${BASE_URL}?${outgoingParams.toString()}`
+      : `${APP_SCHEME}?${outgoingParams.toString()}`;
+
+  return reply.redirect(redirectTo);
+};
+
+export const kakaoTokenHandler = async (
+  request: FastifyRequest,
+  reply: FastifyReply
+) => {
+  const { code } = request.body as any;
+
+  if (!code) {
+    return reply.status(400).send({ error: "Missing authorization code" });
+  }
+  if (!KAKAO_CLIENT_ID || !KAKAO_CLIENT_SECRET) {
+    return reply
+      .status(400)
+      .send({ error: "Kakao client info not set in env" });
+  }
+
+  // Exchange code for access token
+  const tokenResponse = await fetch(KAKAO_TOKEN_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      client_id: KAKAO_CLIENT_ID,
+      client_secret: KAKAO_CLIENT_SECRET,
+      redirect_uri: KAKAO_REDIRECT_URI,
+      grant_type: "authorization_code",
+      code,
+    }),
+  });
+
+  const data = await tokenResponse.json();
+
+  if (!data.access_token) {
+    return reply.status(400).send({ error: "Missing access token from Kakao" });
+  }
+
+  const userResponse = await fetch(KAKAO_USER_INFO_URL, {
+    headers: {
+      Authorization: `Bearer ${data.access_token}`,
+      "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
     },
+  });
+
+  const userData = await userResponse.json();
+  if (userData.error) {
+    return reply
+      .status(400)
+      .send({ error: "Failed to fetch user info from Kakao" });
+  }
+
+  const kakaoAccount = userData.kakao_account;
+  const profile = kakaoAccount?.profile;
+
+  const userInfo: any = {
+    sub: userData.id ? userData.id.toString() : "unknown",
+    name: profile?.nickname || "Kakao User",
+    email: kakaoAccount?.email || `${userData.id}@kakao.com`,
+    picture: profile?.profile_image_url || "https://i.imgur.com/0LKZQYM.png",
+    email_verified: kakaoAccount?.is_email_verified || false,
+    provider: "kakao",
   };
-}
+  await memberService.findOrCreateSocialMember(userInfo);
+
+  const issuedAt = Math.floor(Date.now() / 1000);
+  const jti = crypto.randomUUID();
+
+  const accessToken = await new jose.SignJWT(userInfo)
+    .setProtectedHeader({ alg: "HS256" })
+    .setExpirationTime(JWT_EXPIRATION_TIME)
+    .setSubject(userInfo.sub)
+    .setIssuedAt(issuedAt)
+    .sign(new TextEncoder().encode(JWT_SECRET));
+
+  const refreshToken = await new jose.SignJWT({
+    ...userInfo,
+    jti,
+    type: "refresh",
+  })
+    .setProtectedHeader({ alg: "HS256" })
+    .setExpirationTime(REFRESH_TOKEN_EXPIRY)
+    .setIssuedAt(issuedAt)
+    .sign(new TextEncoder().encode(JWT_SECRET));
+
+  return reply.send({
+    accessToken,
+    refreshToken,
+  });
+};
+export const naverAuthorizeHandler = async (
+  request: FastifyRequest,
+  reply: FastifyReply
+) => {
+  if (!NAVER_CLIENT_ID) {
+    return reply.status(500).send({ error: "NAVER_CLIENT_ID is not set" });
+  }
+
+  const url = new URL(request.url, BASE_URL);
+  const redirectUri = url.searchParams.get("redirect_uri");
+  const state = url.searchParams.get("state");
+
+  let platform;
+  if (redirectUri === APP_SCHEME) {
+    platform = "mobile";
+  } else {
+    return reply.status(400).send({ error: "Invalid redirect URI" });
+  }
+
+  const combinedState = platform + "|" + state;
+
+  const params = new URLSearchParams({
+    client_id: NAVER_CLIENT_ID,
+    redirect_uri: NAVER_REDIRECT_URI,
+    response_type: "code",
+    state: combinedState,
+  });
+
+  return reply.redirect(`${NAVER_AUTH_URL}?${params.toString()}`);
+};
+
+export const naverCallbackHandler = async (
+  request: FastifyRequest,
+  reply: FastifyReply
+) => {
+  const url = new URL(request.url, BASE_URL);
+  const code = url.searchParams.get("code");
+  const combinedPlatformAndState = url.searchParams.get("state");
+
+  if (!combinedPlatformAndState) {
+    return reply.status(400).send({ error: "Invalid state" });
+  }
+
+  const [platform, state] = combinedPlatformAndState.split("|");
+  const outgoingParams = new URLSearchParams({
+    code: code || "",
+    state,
+  });
+
+  const redirectTo =
+    platform === "web"
+      ? `${BASE_URL}?${outgoingParams.toString()}`
+      : `${APP_SCHEME}?${outgoingParams.toString()}`;
+
+  return reply.redirect(redirectTo);
+};
+
+export const naverTokenHandler = async (
+  request: FastifyRequest,
+  reply: FastifyReply
+) => {
+  const { code } = request.body as any;
+
+  if (!code) {
+    return reply.status(400).send({
+      error: "invalid_request",
+      error_description: "Missing authorization code or state",
+    });
+  }
+
+  if (!NAVER_CLIENT_ID || !NAVER_CLIENT_SECRET) {
+    return reply.status(400).send({
+      error: "Naver client info not set in env",
+    });
+  }
+
+  // Exchange code for access token
+  const tokenResponse = await fetch(NAVER_TOKEN_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      client_id: NAVER_CLIENT_ID,
+      client_secret: NAVER_CLIENT_SECRET,
+      redirect_uri: NAVER_REDIRECT_URI,
+      grant_type: "authorization_code",
+      code,
+    }),
+  });
+
+  const data = await tokenResponse.json();
+
+  if (!data.access_token) {
+    return reply.status(400).send({
+      error: "Missing access token from Naver",
+    });
+  }
+
+  const userResponse = await fetch(NAVER_USER_INFO_URL, {
+    headers: {
+      Authorization: `Bearer ${data.access_token}`,
+      "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
+    },
+  });
+
+  const userResponseData = await userResponse.json();
+  const userData = userResponseData?.response;
+
+  const userInfo: any = {
+    sub: userData.id ? userData.id.toString() : "unknown",
+    name: userData.name || "Naver User",
+    email: userData.email || `${userData.id}@naver.com`,
+    picture: userData.profile_image || "https://i.imgur.com/0LKZQYM.png",
+    email_verified: userData.email_verified || false,
+    provider: "naver",
+  };
+  await memberService.findOrCreateSocialMember(userInfo);
+
+  const issuedAt = Math.floor(Date.now() / 1000);
+  const jti = crypto.randomUUID();
+
+  const accessToken = await new jose.SignJWT(userInfo)
+    .setProtectedHeader({ alg: "HS256" })
+    .setExpirationTime(JWT_EXPIRATION_TIME)
+    .setSubject(userInfo.sub)
+    .setIssuedAt(issuedAt)
+    .sign(new TextEncoder().encode(JWT_SECRET));
+
+  const refreshToken = await new jose.SignJWT({
+    ...userInfo,
+    jti,
+    type: "refresh",
+  })
+    .setProtectedHeader({ alg: "HS256" })
+    .setExpirationTime(REFRESH_TOKEN_EXPIRY)
+    .setIssuedAt(issuedAt)
+    .sign(new TextEncoder().encode(JWT_SECRET));
+
+  return reply.send({
+    accessToken,
+    refreshToken,
+  });
+};
+
+export const userInfoHandler = async (
+  request: FastifyRequest,
+  reply: FastifyReply
+) => {
+  try {
+    const authHeader = request.headers.authorization;
+    if (!authHeader) {
+      return reply.status(401).send({ error: "Not authenticated" });
+    }
+    const token = authHeader.split(" ")[1];
+
+    try {
+      const verified = await jose.jwtVerify(
+        token,
+        new TextEncoder().encode(JWT_SECRET)
+      );
+
+      return reply.send({ ...verified.payload });
+    } catch (error) {
+      return reply.status(401).send({ error: "Invalid token" });
+    }
+  } catch (error) {
+    console.error("Session error:", error);
+    return reply.status(500).send({ error: "Server error" });
+  }
+};
+
+export const refreshTokenHandler = async (
+  request: FastifyRequest,
+  reply: FastifyReply
+) => {
+  try {
+    let refreshToken: string | null = null;
+    const contentType = request.headers["content-type"] || "";
+
+    if (contentType.includes("application/json")) {
+      refreshToken = (request.body as any).refreshToken || null;
+    } else if (contentType.includes("application/x-www-form-urlencoded")) {
+      refreshToken = (request.body as any).refreshToken || null;
+    }
+
+    if (!refreshToken) {
+      const authHeader = request.headers.authorization;
+      if (authHeader && authHeader.startsWith("Bearer ")) {
+        const accessToken = authHeader.split(" ")[1];
+        try {
+          const decoded = await jose.jwtVerify(
+            accessToken,
+            new TextEncoder().encode(JWT_SECRET)
+          );
+          const userInfo = decoded.payload;
+          const issuedAt = Math.floor(Date.now() / 1000);
+
+          const newAccessToken = await new jose.SignJWT({ ...userInfo })
+            .setProtectedHeader({ alg: "HS256" })
+            .setExpirationTime(JWT_EXPIRATION_TIME)
+            .setSubject(userInfo.sub as string)
+            .setIssuedAt(issuedAt)
+            .sign(new TextEncoder().encode(JWT_SECRET));
+
+          return reply.send({
+            accessToken: newAccessToken,
+          });
+        } catch {
+          return reply.status(401).send({
+            error: "Authentication required - no valid refresh token",
+          });
+        }
+      }
+      return reply.status(401).send({
+        error: "Authentication required - no refresh token",
+      });
+    }
+
+    let decoded;
+    try {
+      decoded = await jose.jwtVerify(
+        refreshToken,
+        new TextEncoder().encode(JWT_SECRET)
+      );
+    } catch (error: any) {
+      if (
+        error.code === "ERR_JWT_EXPIRED" ||
+        error instanceof jose.errors.JWTExpired
+      ) {
+        return reply
+          .status(401)
+          .send({ error: "Refresh token expired, please sign in again" });
+      }
+      return reply.status(401).send({ error: "Invalid refresh token" });
+    }
+
+    const payload = decoded.payload;
+    if (payload.type !== "refresh") {
+      return reply.status(401).send({ error: "Invalid token type" });
+    }
+
+    const sub = payload.sub;
+    if (!sub) {
+      return reply.status(401).send({ error: "Invalid token payload" });
+    }
+
+    const issuedAt = Math.floor(Date.now() / 1000);
+    const jti = uuidv4();
+
+    const userInfo = {
+      ...payload,
+      type: undefined,
+      name: payload.name || "mobile-user",
+      email: payload.email || "user@example.com",
+      picture: payload.picture || "https://ui-avatars.com/api/?name=User",
+    };
+
+    // New access token
+    const newAccessToken = await new jose.SignJWT(userInfo)
+      .setProtectedHeader({ alg: "HS256" })
+      .setExpirationTime(JWT_EXPIRATION_TIME)
+      .setSubject(sub)
+      .setIssuedAt(issuedAt)
+      .sign(new TextEncoder().encode(JWT_SECRET));
+
+    // New refresh token
+    const newRefreshToken = await new jose.SignJWT({
+      ...userInfo,
+      jti,
+      type: "refresh",
+    })
+      .setProtectedHeader({ alg: "HS256" })
+      .setExpirationTime(REFRESH_TOKEN_EXPIRY)
+      .setIssuedAt(issuedAt)
+      .sign(new TextEncoder().encode(JWT_SECRET));
+
+    return reply.send({
+      accessToken: newAccessToken,
+      refreshToken: newRefreshToken,
+    });
+  } catch (error) {
+    console.error("Refresh error:", error);
+    return reply.status(500).send({ error: "Failed to refresh token" });
+  }
+};

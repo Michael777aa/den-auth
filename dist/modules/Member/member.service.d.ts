@@ -1,10 +1,26 @@
-import { LoginInput, Member, MemberInput, MemberUpdateInput } from "../../libs/types/member";
-declare class MemberService {
-    private readonly memberModel;
-    constructor();
-    signup(input: MemberInput): Promise<any>;
-    login(input: LoginInput): Promise<Member>;
-    updateMember(member: Member, input: MemberUpdateInput): Promise<Member>;
-    findOrCreateOAuthUser(input: MemberInput): Promise<Member>;
+import { AuthUser } from "@/libs/utils/middleware";
+export declare class MemberService {
+    findOrCreateSocialMember(user: AuthUser): Promise<import("mongoose").Document<unknown, any, {
+        createdAt: NativeDate;
+        updatedAt: NativeDate;
+    } & {
+        email: string;
+        name: string;
+        sub: string;
+        provider: import("../../libs/enums/member.enum").MemberProvider;
+        exp: number;
+        picture?: string | undefined;
+    }> & Omit<{
+        createdAt: NativeDate;
+        updatedAt: NativeDate;
+    } & {
+        email: string;
+        name: string;
+        sub: string;
+        provider: import("../../libs/enums/member.enum").MemberProvider;
+        exp: number;
+        picture?: string | undefined;
+    } & {
+        _id: import("mongoose").Types.ObjectId;
+    }, never>>;
 }
-export default MemberService;

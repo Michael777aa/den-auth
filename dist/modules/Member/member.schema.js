@@ -34,27 +34,37 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.memberModel = void 0;
-// models/Member.model.ts
 const mongoose_1 = __importStar(require("mongoose"));
-const member_enum_1 = require("../../libs/enums/member.enum");
+const member_enum_1 = require("../../libs/enums/member.enum"); // Import MemberProvider
+// Define the member schema
 const memberSchema = new mongoose_1.Schema({
+    email: {
+        type: String,
+        required: true,
+    },
+    name: {
+        type: String,
+        required: true,
+    },
+    sub: {
+        type: String,
+        required: true,
+    },
+    picture: {
+        type: String,
+    },
     provider: {
         type: String,
-        enum: member_enum_1.MemberProvider,
+        enum: Object.values(member_enum_1.MemberProvider),
         required: true,
-        default: member_enum_1.MemberProvider.custom,
     },
-    providerId: { type: String },
-    memberEmail: { type: String, index: { unique: true, sparse: true } },
-    memberNickname: { type: String },
-    memberImage: { type: String },
-    memberPassword: {
-        type: String,
-        select: false,
-        required: function () {
-            return this.provider === "custom";
-        },
+    exp: {
+        type: Number,
+        default: Date.now(),
     },
 }, { timestamps: true });
+// Unique index on provider + sub (NOT email)
+memberSchema.index({ provider: 1, sub: 1 }, { unique: true });
+// Create the model based on the schema
 exports.memberModel = mongoose_1.default.model("member", memberSchema);
 //# sourceMappingURL=member.schema.js.map

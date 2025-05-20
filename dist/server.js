@@ -14,7 +14,7 @@ mongoose_1.default.set("strictQuery", false);
 mongoose_1.default
     .connect(process.env.MONGO_URL, {})
     .then(async () => {
-    console.log("MongoDB connection succeeded");
+    console.log("MongoDB successfully connected to the server");
     const PORT = process.env.PORT ?? 3000;
     const server = await (0, app_1.default)();
     server.listen({
@@ -25,7 +25,7 @@ mongoose_1.default
             console.error(err);
             process.exit(1);
         }
-        console.log(`\nProject running on http://localhost:${PORT}`);
+        console.log(`Project running on http://localhost:${PORT}`);
     });
 })
     .catch((err) => {

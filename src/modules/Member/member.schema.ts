@@ -32,7 +32,6 @@ const memberSchema = new Schema(
   { timestamps: true }
 );
 
-// Unique index on provider + sub (NOT email)
 memberSchema.index({ provider: 1, sub: 1 }, { unique: true });
 
 // Create the model based on the schema
