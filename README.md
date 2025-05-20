@@ -18,4 +18,3 @@ For more details, please refer to the README file below.
 
 - **[한국어](./src/docs/README_KR.md)**
 - **[English](./src/docs/README_EN.md)**
-  src/docs

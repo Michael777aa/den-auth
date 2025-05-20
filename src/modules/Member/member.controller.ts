@@ -30,9 +30,17 @@ import {
 } from "../../libs/utils/constants";
 import { v4 as uuidv4 } from "uuid";
 
-// By centralizing all social authentication logic in a single controller, this approach reduces code duplication, simplifies debugging and maintenance, enhances scalability for adding more providers in the future, ensures a consistent API structure, and promotes better team collaboration by making the authentication flow transparent and organized.
-// 모든 소셜 인증 로직을 하나의 컨트롤러로 통합함으로써, 코드 중복을 줄이고 디버깅과 유지보수를 단순화하며, 향후 새로운 소셜 제공자 추가 시 확장성을 높이고, 일관된 API 구조를 보장하며, 인증 플로우가 투명하고 체계적으로 관리되어 팀 협업도 더욱 원활하게 만들 수 있습니다.
+/**
+  By centralizing all social authentication logic in a single controller,
+  this approach reduces code duplication, simplifies debugging and maintenance,
+  enhances scalability for adding more providers in the future, ensures a consistent API structure,
+  and promotes better team collaboration by making the authentication flow transparent and organized.
 
+  모든 소셜 인증 로직을 하나의 컨트롤러로 통합함으로써, 코드 중복을 줄이고 디버깅과 유지보수를 단순화하며,
+  향후 새로운 소셜 제공자 추가 시 확장성을 높이고, 일관된 API 구조를 보장하며,
+  인증 플로우가 투명하고 체계적으로 관리되어 팀 협업도 더욱 원활하게 만들 수 있습니다.
+ */
+const memberService = new MemberService();
 /**
  *
  * Social Authentication Controller for Google, Kakao, Naver
@@ -43,8 +51,6 @@ import { v4 as uuidv4 } from "uuid";
  * - OAuth 로그인, 토큰 발급, 사용자 정보 조회, 토큰 갱신 기능 포함
  * - 모바일(딥링크) 플로우 지원
  */
-
-const memberService = new MemberService();
 
 /**
  * Google OAuth: Redirect user to Google consent page.
@@ -61,13 +67,11 @@ export const googleAuthorizeHandler = async (
   const stateParam = url.searchParams.get("state");
   let platform;
   const redirectUri = url.searchParams.get("redirect_uri");
-
   if (redirectUri === APP_SCHEME) {
     platform = "mobile";
   } else {
     return reply.status(400).send({ error: "Invalid redirect URI" });
   }
-
   const state = platform + "|" + stateParam;
   const params = new URLSearchParams({
     client_id: GOOGLE_CLIENT_ID,
@@ -92,13 +96,11 @@ export const googleCallbackHandler = async (
   if (!combinedPlatformAndState) {
     return reply.status(400).send({ error: "Invalid state" });
   }
-
   const [platform, state] = combinedPlatformAndState.split("|");
   const outgoingParams = new URLSearchParams({
     code: code || "",
     state: state || "",
   });
-
   const redirectTo =
     platform === "web"
       ? `${BASE_URL}?${outgoingParams.toString()}`
@@ -149,7 +151,6 @@ export const googleTokenHandler = async (
       ...decoded,
       provider: "google",
     };
-
     const { exp, ...userInfoWithoutExp } = userInfo;
     const sub = userInfo.sub;
     const issuedAt = Math.floor(Date.now() / 1000);
