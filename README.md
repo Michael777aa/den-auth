@@ -17,5 +17,5 @@ For more details, please refer to the README file below.
 **README:**
 
 - **[한국어](./src/docs/README_KR.md)**
-- **[English](./scr/docs/README_EN.md)**
+- **[English](./src/docs/README_EN.md)**
   src/docs
