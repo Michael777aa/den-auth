@@ -1,42 +1,12 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.refreshTokenHandler = exports.userInfoHandler = exports.naverTokenHandler = exports.naverCallbackHandler = exports.naverAuthorizeHandler = exports.kakaoTokenHandler = exports.kakaoCallbackHandler = exports.kakaoAuthorizeHandler = exports.googleTokenHandler = exports.googleCallbackHandler = exports.googleAuthorizeHandler = void 0;
 const member_service_1 = require("./member.service");
 const constants_1 = require("../../libs/utils/constants");
-const jose = __importStar(require("jose"));
+const jose_1 = __importDefault(require("jose"));
 const constants_2 = require("../../libs/utils/constants");
 const uuid_1 = require("uuid");
 /**
@@ -140,7 +110,7 @@ const googleTokenHandler = async (request, reply) => {
         if (!data.id_token) {
             return reply.status(400).send({ error: "Missing ID token from Google" });
         }
-        const decoded = jose.decodeJwt(data.id_token);
+        const decoded = jose_1.default.decodeJwt(data.id_token);
         const userInfo = {
             ...decoded,
             provider: "google",
@@ -149,13 +119,13 @@ const googleTokenHandler = async (request, reply) => {
         const sub = userInfo.sub;
         const issuedAt = Math.floor(Date.now() / 1000);
         const jti = (0, uuid_1.v4)();
-        const accessToken = await new jose.SignJWT(userInfoWithoutExp)
+        const accessToken = await new jose_1.default.SignJWT(userInfoWithoutExp)
             .setProtectedHeader({ alg: "HS256" })
             .setExpirationTime(constants_2.JWT_EXPIRATION_TIME)
             .setSubject(sub)
             .setIssuedAt(issuedAt)
             .sign(new TextEncoder().encode(constants_2.JWT_SECRET));
-        const refreshToken = await new jose.SignJWT({
+        const refreshToken = await new jose_1.default.SignJWT({
             sub,
             jti,
             type: "refresh",
@@ -288,13 +258,13 @@ const kakaoTokenHandler = async (request, reply) => {
     await memberService.findOrCreateSocialMember(userInfo);
     const issuedAt = Math.floor(Date.now() / 1000);
     const jti = crypto.randomUUID();
-    const accessToken = await new jose.SignJWT(userInfo)
+    const accessToken = await new jose_1.default.SignJWT(userInfo)
         .setProtectedHeader({ alg: "HS256" })
         .setExpirationTime(constants_2.JWT_EXPIRATION_TIME)
         .setSubject(userInfo.sub)
         .setIssuedAt(issuedAt)
         .sign(new TextEncoder().encode(constants_2.JWT_SECRET));
-    const refreshToken = await new jose.SignJWT({
+    const refreshToken = await new jose_1.default.SignJWT({
         ...userInfo,
         jti,
         type: "refresh",
@@ -413,13 +383,13 @@ const naverTokenHandler = async (request, reply) => {
     await memberService.findOrCreateSocialMember(userInfo);
     const issuedAt = Math.floor(Date.now() / 1000);
     const jti = crypto.randomUUID();
-    const accessToken = await new jose.SignJWT(userInfo)
+    const accessToken = await new jose_1.default.SignJWT(userInfo)
         .setProtectedHeader({ alg: "HS256" })
         .setExpirationTime(constants_2.JWT_EXPIRATION_TIME)
         .setSubject(userInfo.sub)
         .setIssuedAt(issuedAt)
         .sign(new TextEncoder().encode(constants_2.JWT_SECRET));
-    const refreshToken = await new jose.SignJWT({
+    const refreshToken = await new jose_1.default.SignJWT({
         ...userInfo,
         jti,
         type: "refresh",
@@ -446,7 +416,7 @@ const userInfoHandler = async (request, reply) => {
         }
         const token = authHeader.split(" ")[1];
         try {
-            const verified = await jose.jwtVerify(token, new TextEncoder().encode(constants_2.JWT_SECRET));
+            const verified = await jose_1.default.jwtVerify(token, new TextEncoder().encode(constants_2.JWT_SECRET));
             return reply.send({ ...verified.payload });
         }
         catch (error) {
@@ -478,10 +448,10 @@ const refreshTokenHandler = async (request, reply) => {
             if (authHeader && authHeader.startsWith("Bearer ")) {
                 const accessToken = authHeader.split(" ")[1];
                 try {
-                    const decoded = await jose.jwtVerify(accessToken, new TextEncoder().encode(constants_2.JWT_SECRET));
+                    const decoded = await jose_1.default.jwtVerify(accessToken, new TextEncoder().encode(constants_2.JWT_SECRET));
                     const userInfo = decoded.payload;
                     const issuedAt = Math.floor(Date.now() / 1000);
-                    const newAccessToken = await new jose.SignJWT({ ...userInfo })
+                    const newAccessToken = await new jose_1.default.SignJWT({ ...userInfo })
                         .setProtectedHeader({ alg: "HS256" })
                         .setExpirationTime(constants_2.JWT_EXPIRATION_TIME)
                         .setSubject(userInfo.sub)
@@ -503,11 +473,11 @@ const refreshTokenHandler = async (request, reply) => {
         }
         let decoded;
         try {
-            decoded = await jose.jwtVerify(refreshToken, new TextEncoder().encode(constants_2.JWT_SECRET));
+            decoded = await jose_1.default.jwtVerify(refreshToken, new TextEncoder().encode(constants_2.JWT_SECRET));
         }
         catch (error) {
             if (error.code === "ERR_JWT_EXPIRED" ||
-                error instanceof jose.errors.JWTExpired) {
+                error instanceof jose_1.default.errors.JWTExpired) {
                 return reply
                     .status(401)
                     .send({ error: "Refresh token expired, please sign in again" });
@@ -532,14 +502,14 @@ const refreshTokenHandler = async (request, reply) => {
             picture: payload.picture || "https://ui-avatars.com/api/?name=User",
         };
         // New access token
-        const newAccessToken = await new jose.SignJWT(userInfo)
+        const newAccessToken = await new jose_1.default.SignJWT(userInfo)
             .setProtectedHeader({ alg: "HS256" })
             .setExpirationTime(constants_2.JWT_EXPIRATION_TIME)
             .setSubject(sub)
             .setIssuedAt(issuedAt)
             .sign(new TextEncoder().encode(constants_2.JWT_SECRET));
         // New refresh token
-        const newRefreshToken = await new jose.SignJWT({
+        const newRefreshToken = await new jose_1.default.SignJWT({
             ...userInfo,
             jti,
             type: "refresh",
