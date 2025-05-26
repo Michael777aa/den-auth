@@ -36,12 +36,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.refreshTokenHandler = exports.userInfoHandler = exports.naverTokenHandler = exports.naverCallbackHandler = exports.naverAuthorizeHandler = exports.kakaoTokenHandler = exports.kakaoCallbackHandler = exports.kakaoAuthorizeHandler = exports.googleTokenHandler = exports.googleCallbackHandler = exports.googleAuthorizeHandler = void 0;
 const member_service_1 = require("./member.service");
 const constants_1 = require("../../libs/utils/constants");
+const jose = __importStar(require("jose"));
 const constants_2 = require("../../libs/utils/constants");
 const uuid_1 = require("uuid");
-let jose;
-(async () => {
-    jose = await Promise.resolve().then(() => __importStar(require("jose")));
-})();
 /**
   By centralizing all social authentication logic in a single controller,
   this approach reduces code duplication, simplifies debugging and maintenance,

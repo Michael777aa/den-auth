@@ -12,7 +12,7 @@
     "sourceMap": true,
     "declaration": true,
     "types": ["node"],
-    "baseUrl": ".",
+    "baseUrl": "./src",
     "paths": {
       "@/*": ["src/*"]
     }
