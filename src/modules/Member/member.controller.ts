@@ -22,16 +22,14 @@ import {
   NAVER_TOKEN_URL,
   NAVER_USER_INFO_URL,
 } from "../../libs/utils/constants";
+import * as jose from "jose";
 import {
   JWT_EXPIRATION_TIME,
   JWT_SECRET,
   REFRESH_TOKEN_EXPIRY,
 } from "../../libs/utils/constants";
 import { v4 as uuidv4 } from "uuid";
-let jose: typeof import("jose");
-(async () => {
-  jose = await import("jose");
-})();
+
 /**
   By centralizing all social authentication logic in a single controller,
   this approach reduces code duplication, simplifies debugging and maintenance,
