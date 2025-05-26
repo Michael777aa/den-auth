@@ -1,3 +1,3 @@
 import { FastifyInstance } from "fastify";
-declare const memberRoutes: (server: FastifyInstance) => Promise<void>;
-export default memberRoutes;
+declare const authRoutes: (server: FastifyInstance) => Promise<void>;
+export default authRoutes;

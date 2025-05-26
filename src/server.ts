@@ -1,6 +1,6 @@
 import dotenv from "dotenv";
 dotenv.config({
-  path: process.env.NODE_ENV === "production" ? ".env.production" : ".env",
+  path: process.env.NODE_ENV === "production" ? ".env" : ".env",
 });
 import mongoose from "mongoose";
 import initApp from "./app";

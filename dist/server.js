@@ -9,6 +9,7 @@ dotenv_1.default.config({
 });
 const mongoose_1 = __importDefault(require("mongoose"));
 const app_1 = __importDefault(require("./app"));
+// 데이터베이스 연결 및 서버 시작
 // Database connection and server startup
 mongoose_1.default.set("strictQuery", false);
 mongoose_1.default
