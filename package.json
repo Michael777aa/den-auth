@@ -13,6 +13,7 @@
     "start:prod": "cross-env NODE_ENV=production node dist/server.js",
     "lint": "eslint . --ext .ts,.tsx --fix",
     "test": "jest",
+    "type": "module",
     "prepare": "husky install"
   },
   "keywords": [
