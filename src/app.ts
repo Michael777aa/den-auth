@@ -3,7 +3,7 @@
 
 import fastify from "fastify";
 import cors from "@fastify/cors";
-import memberRoutes from "./modules/member/member.route";
+import memberRoutes from "./modules/Member/member.route";
 
 // Create Fastify instance (ignores trailing slashes in routes)
 // Fastify 인스턴스 생성 (라우트의 끝 슬래시 무시)
