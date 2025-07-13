@@ -1,7 +1,7 @@
 {
   "name": "fastify-backend-project",
   "version": "1.0.0",
-  "description": "Car Washing Service API with Fastify, MongoDB, and OAuth",
+  "description": "Deen Daily Service API with Fastify, MongoDB, and OAuth",
   "main": "dist/server.js",
   "scripts": {
     "dev": "nodemon src/server.ts",

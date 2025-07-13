@@ -29,7 +29,8 @@ import {
   REFRESH_TOKEN_EXPIRY,
 } from "../../libs/utils/constants";
 import { v4 as uuidv4 } from "uuid";
-
+import axios from "axios";
+import qs from "qs";
 /**
   By centralizing all social authentication logic in a single controller,
   this approach reduces code duplication, simplifies debugging and maintenance,
@@ -130,21 +131,21 @@ export const googleTokenHandler = async (
   }
 
   try {
-    const tokenRes = await fetch(GOOGLE_TOKEN_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
+    const tokenRes = await axios.post(
+      GOOGLE_TOKEN_URL,
+      qs.stringify({
         client_id: GOOGLE_CLIENT_ID,
         client_secret: GOOGLE_CLIENT_SECRET,
         redirect_uri: GOOGLE_REDIRECT_URI,
         grant_type: "authorization_code",
         code,
       }),
-    });
-    const data = await tokenRes.json();
-    if (!data.id_token) {
-      return reply.status(400).send({ error: "Missing ID token from Google" });
-    }
+      {
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      }
+    );
+
+    const data = tokenRes.data;
 
     const decoded = jose.decodeJwt(data.id_token) as any;
     const userInfo: any = {
@@ -279,32 +280,36 @@ export const kakaoTokenHandler = async (
   }
 
   // Exchange code for access token
-  const tokenResponse = await fetch(KAKAO_TOKEN_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
+  const tokenResponse = await axios.post(
+    KAKAO_TOKEN_URL,
+    qs.stringify({
       client_id: KAKAO_CLIENT_ID,
       client_secret: KAKAO_CLIENT_SECRET,
       redirect_uri: KAKAO_REDIRECT_URI,
       grant_type: "authorization_code",
       code,
     }),
-  });
+    {
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+    }
+  );
 
-  const data = await tokenResponse.json();
+  const data = tokenResponse.data;
 
   if (!data.access_token) {
     return reply.status(400).send({ error: "Missing access token from Kakao" });
   }
 
-  const userResponse = await fetch(KAKAO_USER_INFO_URL, {
+  const userResponse = await axios.get(KAKAO_USER_INFO_URL, {
     headers: {
       Authorization: `Bearer ${data.access_token}`,
       "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
     },
   });
 
-  const userData = await userResponse.json();
+  const userData = userResponse.data;
   if (userData.error) {
     return reply
       .status(400)
@@ -439,34 +444,38 @@ export const naverTokenHandler = async (
   }
 
   // Exchange code for access token
-  const tokenResponse = await fetch(NAVER_TOKEN_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
+  const tokenResponse = await axios.post(
+    NAVER_TOKEN_URL,
+    qs.stringify({
       client_id: NAVER_CLIENT_ID,
       client_secret: NAVER_CLIENT_SECRET,
       redirect_uri: NAVER_REDIRECT_URI,
       grant_type: "authorization_code",
       code,
     }),
-  });
+    {
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+    }
+  );
 
-  const data = await tokenResponse.json();
-
+  const data = tokenResponse.data;
   if (!data.access_token) {
     return reply.status(400).send({
       error: "Missing access token from Naver",
     });
   }
 
-  const userResponse = await fetch(NAVER_USER_INFO_URL, {
+  const userResponse = await axios.get(NAVER_USER_INFO_URL, {
     headers: {
       Authorization: `Bearer ${data.access_token}`,
       "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
     },
   });
 
-  const userResponseData = await userResponse.json();
+  const userResponseData = userResponse.data;
+
   const userData = userResponseData?.response;
 
   const userInfo: any = {
