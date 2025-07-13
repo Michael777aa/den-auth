@@ -24,6 +24,10 @@ async function registerPlugins() {
 // 인증 라우트를 지정된 프리픽스와 함께 등록
 function registerRoutes() {
   app.register(memberRoutes, { prefix: "/api/v1/auth" });
+
+  app.get("/", async (request, reply) => {
+    return "successfully running deen_daily backend authentication";
+  });
 }
 
 // Initialize and return the Fastify app
