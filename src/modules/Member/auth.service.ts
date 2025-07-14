@@ -37,7 +37,10 @@ export class AuthService {
   static async requestPasswordReset(email: string) {
     const user = await authModel.findOne({ email });
     if (!user) throw new Error("User not found");
-
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      throw new Error("Invalid credentials");
+    }
     const code = Math.floor(1000 + Math.random() * 9000).toString(); // 4-digit code
     user.resetPasswordToken = code;
     user.resetPasswordExpire = new Date(Date.now() + 10 * 60 * 1000); // valid for 10 minutes

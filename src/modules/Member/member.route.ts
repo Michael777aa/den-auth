@@ -57,7 +57,7 @@ export const authRoutes = async (server: FastifyInstance) => {
 
   server.post("/reset-password", async (request, reply) => {
     try {
-      const { code, newPassword } = request.body as any; // ⬅️ Changed from `token` to `code`
+      const { code, newPassword } = request.body as any;
       const tokens = await AuthService.resetPassword(code, newPassword);
       return tokens;
     } catch (error: any) {
