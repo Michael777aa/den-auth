@@ -3,7 +3,7 @@
 
 import fastify from "fastify";
 import cors from "@fastify/cors";
-import memberRoutes from "./modules/Member/member.route";
+import { authRoutes } from "./modules/Member/member.route";
 
 // Create Fastify instance (ignores trailing slashes in routes)
 // Fastify 인스턴스 생성 (라우트의 끝 슬래시 무시)
@@ -23,7 +23,7 @@ async function registerPlugins() {
 // Register authentication routes with a specific prefix
 // 인증 라우트를 지정된 프리픽스와 함께 등록
 function registerRoutes() {
-  app.register(memberRoutes, { prefix: "/api/v1/auth" });
+  app.register(authRoutes, { prefix: "/api/v1/auth" });
 
   app.get("/", async (request, reply) => {
     return "successfully running deen_daily backend authentication";

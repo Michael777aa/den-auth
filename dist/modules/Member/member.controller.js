@@ -32,6 +32,9 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.refreshTokenHandler = exports.userInfoHandler = exports.naverTokenHandler = exports.naverCallbackHandler = exports.naverAuthorizeHandler = exports.kakaoTokenHandler = exports.kakaoCallbackHandler = exports.kakaoAuthorizeHandler = exports.googleTokenHandler = exports.googleCallbackHandler = exports.googleAuthorizeHandler = void 0;
 const member_service_1 = require("./member.service");
@@ -39,6 +42,8 @@ const constants_1 = require("../../libs/utils/constants");
 const jose = __importStar(require("jose"));
 const constants_2 = require("../../libs/utils/constants");
 const uuid_1 = require("uuid");
+const axios_1 = __importDefault(require("axios"));
+const qs_1 = __importDefault(require("qs"));
 /**
   By centralizing all social authentication logic in a single controller,
   this approach reduces code duplication, simplifies debugging and maintenance,
@@ -125,21 +130,16 @@ const googleTokenHandler = async (request, reply) => {
         });
     }
     try {
-        const tokenRes = await fetch(constants_1.GOOGLE_TOKEN_URL, {
-            method: "POST",
+        const tokenRes = await axios_1.default.post(constants_1.GOOGLE_TOKEN_URL, qs_1.default.stringify({
+            client_id: constants_1.GOOGLE_CLIENT_ID,
+            client_secret: constants_1.GOOGLE_CLIENT_SECRET,
+            redirect_uri: constants_1.GOOGLE_REDIRECT_URI,
+            grant_type: "authorization_code",
+            code,
+        }), {
             headers: { "Content-Type": "application/x-www-form-urlencoded" },
-            body: new URLSearchParams({
-                client_id: constants_1.GOOGLE_CLIENT_ID,
-                client_secret: constants_1.GOOGLE_CLIENT_SECRET,
-                redirect_uri: constants_1.GOOGLE_REDIRECT_URI,
-                grant_type: "authorization_code",
-                code,
-            }),
         });
-        const data = await tokenRes.json();
-        if (!data.id_token) {
-            return reply.status(400).send({ error: "Missing ID token from Google" });
-        }
+        const data = tokenRes.data;
         const decoded = jose.decodeJwt(data.id_token);
         const userInfo = {
             ...decoded,
@@ -248,28 +248,28 @@ const kakaoTokenHandler = async (request, reply) => {
             .send({ error: "Kakao client info not set in env" });
     }
     // Exchange code for access token
-    const tokenResponse = await fetch(constants_1.KAKAO_TOKEN_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-            client_id: constants_1.KAKAO_CLIENT_ID,
-            client_secret: constants_1.KAKAO_CLIENT_SECRET,
-            redirect_uri: constants_1.KAKAO_REDIRECT_URI,
-            grant_type: "authorization_code",
-            code,
-        }),
+    const tokenResponse = await axios_1.default.post(constants_1.KAKAO_TOKEN_URL, qs_1.default.stringify({
+        client_id: constants_1.KAKAO_CLIENT_ID,
+        client_secret: constants_1.KAKAO_CLIENT_SECRET,
+        redirect_uri: constants_1.KAKAO_REDIRECT_URI,
+        grant_type: "authorization_code",
+        code,
+    }), {
+        headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+        },
     });
-    const data = await tokenResponse.json();
+    const data = tokenResponse.data;
     if (!data.access_token) {
         return reply.status(400).send({ error: "Missing access token from Kakao" });
     }
-    const userResponse = await fetch(constants_1.KAKAO_USER_INFO_URL, {
+    const userResponse = await axios_1.default.get(constants_1.KAKAO_USER_INFO_URL, {
         headers: {
             Authorization: `Bearer ${data.access_token}`,
             "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
         },
     });
-    const userData = await userResponse.json();
+    const userData = userResponse.data;
     if (userData.error) {
         return reply
             .status(400)
@@ -377,30 +377,30 @@ const naverTokenHandler = async (request, reply) => {
         });
     }
     // Exchange code for access token
-    const tokenResponse = await fetch(constants_1.NAVER_TOKEN_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-            client_id: constants_1.NAVER_CLIENT_ID,
-            client_secret: constants_1.NAVER_CLIENT_SECRET,
-            redirect_uri: constants_1.NAVER_REDIRECT_URI,
-            grant_type: "authorization_code",
-            code,
-        }),
+    const tokenResponse = await axios_1.default.post(constants_1.NAVER_TOKEN_URL, qs_1.default.stringify({
+        client_id: constants_1.NAVER_CLIENT_ID,
+        client_secret: constants_1.NAVER_CLIENT_SECRET,
+        redirect_uri: constants_1.NAVER_REDIRECT_URI,
+        grant_type: "authorization_code",
+        code,
+    }), {
+        headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+        },
     });
-    const data = await tokenResponse.json();
+    const data = tokenResponse.data;
     if (!data.access_token) {
         return reply.status(400).send({
             error: "Missing access token from Naver",
         });
     }
-    const userResponse = await fetch(constants_1.NAVER_USER_INFO_URL, {
+    const userResponse = await axios_1.default.get(constants_1.NAVER_USER_INFO_URL, {
         headers: {
             Authorization: `Bearer ${data.access_token}`,
             "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
         },
     });
-    const userResponseData = await userResponse.json();
+    const userResponseData = userResponse.data;
     const userData = userResponseData?.response;
     const userInfo = {
         sub: userData.id ? userData.id.toString() : "unknown",

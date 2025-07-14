@@ -5,7 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config({
-    path: process.env.NODE_ENV === "production" ? ".env" : ".env",
+    path: process.env.NODE_ENV === "production" ? ".env.production" : ".env",
 });
 const mongoose_1 = __importDefault(require("mongoose"));
 const app_1 = __importDefault(require("./app"));
