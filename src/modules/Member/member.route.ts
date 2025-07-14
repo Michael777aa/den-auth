@@ -23,10 +23,10 @@ import { AuthService } from "./auth.service";
 export const authRoutes = async (server: FastifyInstance) => {
   server.post("/signup", async (request, reply) => {
     try {
-      const { email, password, name, provider } = request.body as any;
-      console.log("RESULT", request.body);
+      const { email, password, name } = request.body as any;
 
       const tokens = await AuthService.signup(email, password, name);
+
       return tokens;
     } catch (error: any) {
       return reply.status(400).send({ error: error.message });
@@ -36,6 +36,8 @@ export const authRoutes = async (server: FastifyInstance) => {
   server.post("/login", async (request, reply) => {
     try {
       const { email, password } = request.body as any;
+      console.log("LOGIN", request.body);
+
       const tokens = await AuthService.login(email, password);
       return tokens;
     } catch (error: any) {
@@ -55,8 +57,8 @@ export const authRoutes = async (server: FastifyInstance) => {
 
   server.post("/reset-password", async (request, reply) => {
     try {
-      const { token, newPassword } = request.body as any;
-      const tokens = await AuthService.resetPassword(token, newPassword);
+      const { code, newPassword } = request.body as any; // ⬅️ Changed from `token` to `code`
+      const tokens = await AuthService.resetPassword(code, newPassword);
       return tokens;
     } catch (error: any) {
       return reply.status(400).send({ error: error.message });

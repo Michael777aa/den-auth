@@ -1,8 +1,8 @@
-// services/auth.service.ts
+import nodemailer from "nodemailer";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
-import { memberModel } from "./member.schema";
+import { authModel } from "./traditionalauth.schema";
 
 export class AuthService {
   private static readonly SALT_ROUNDS = 10;
@@ -11,20 +11,21 @@ export class AuthService {
   private static readonly JWT_EXPIRES_IN = "7d";
 
   static async signup(email: string, password: string, name: string) {
-    const existingUser = await memberModel.findOne({ email });
+    const existingUser = await authModel.findOne({ email });
     if (existingUser) throw new Error("User already exists");
 
     const hashedPassword = await bcrypt.hash(password, this.SALT_ROUNDS);
-    const user: any = await memberModel.create({
+    const user: any = await authModel.create({
       email,
       password: hashedPassword,
       name,
     });
+
     return this.generateTokens(user);
   }
 
   static async login(email: string, password: string) {
-    const user = await memberModel.findOne({ email }).select("+password");
+    const user = await authModel.findOne({ email }).select("+password");
     if (!user || !user.password) throw new Error("Invalid credentials");
 
     const isMatch = await bcrypt.compare(password, user.password);
@@ -34,19 +35,43 @@ export class AuthService {
   }
 
   static async requestPasswordReset(email: string) {
-    const user = await memberModel.findOne({ email });
+    const user = await authModel.findOne({ email });
     if (!user) throw new Error("User not found");
 
-    const resetToken = crypto.randomBytes(20).toString("hex");
-    user.resetPasswordToken = resetToken;
-    user.resetPasswordExpire = new Date(Date.now() + 3600000);
+    const code = Math.floor(1000 + Math.random() * 9000).toString(); // 4-digit code
+    user.resetPasswordToken = code;
+    user.resetPasswordExpire = new Date(Date.now() + 10 * 60 * 1000); // valid for 10 minutes
     await user.save();
 
-    return resetToken;
+    await this.sendResetCode(user.email, code);
+
+    return { message: "Reset code sent to email." };
+  }
+
+  private static async sendResetCode(to: string, code: string) {
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+
+    await transporter.sendMail({
+      from: `"Deen Daily" <${process.env.EMAIL_USER}>`,
+      to,
+      subject: "Your Deen Daily Password Reset Code",
+      html: `
+        <p>Your password reset code is:</p>
+        <h2>${code}</h2>
+        <p>This code is valid for 10 minutes.</p>
+        <p>If you didn’t request this, please ignore this email.</p>
+      `,
+    });
   }
 
   static async resetPassword(token: string, newPassword: string) {
-    const user = await memberModel.findOne({
+    const user = await authModel.findOne({
       resetPasswordToken: token,
       resetPasswordExpire: { $gt: Date.now() },
     });
@@ -62,14 +87,7 @@ export class AuthService {
   }
 
   private static generateTokens(user: any) {
-    const payload = {
-      id: user._id,
-      email: user.email,
-      name: user.name,
-      sub: user._id.toString(),
-      provider: user.provider,
-    };
-
+    const payload = { id: user._id, email: user.email, name: user.name };
     const accessToken = jwt.sign(payload, this.JWT_SECRET, {
       expiresIn: this.JWT_EXPIRES_IN,
     });
