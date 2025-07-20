@@ -1,31 +1,24 @@
 // member.controller.ts
 import { FastifyRequest, FastifyReply } from "fastify";
 import { MemberService } from "./member.service";
+
+import * as jose from "jose";
 import {
   APP_SCHEME,
   BASE_URL,
   GOOGLE_AUTH_URL,
   GOOGLE_CLIENT_ID,
   GOOGLE_CLIENT_SECRET,
-  GOOGLE_REDIRECT_URI,
   GOOGLE_TOKEN_URL,
-  KAKAO_AUTH_URL,
+  JWT_EXPIRATION_TIME,
+  JWT_SECRET,
   KAKAO_CLIENT_ID,
   KAKAO_CLIENT_SECRET,
-  KAKAO_REDIRECT_URI,
-  KAKAO_TOKEN_URL,
-  KAKAO_USER_INFO_URL,
-  NAVER_AUTH_URL,
   NAVER_CLIENT_ID,
   NAVER_CLIENT_SECRET,
   NAVER_REDIRECT_URI,
   NAVER_TOKEN_URL,
   NAVER_USER_INFO_URL,
-} from "../../libs/utils/constants";
-import * as jose from "jose";
-import {
-  JWT_EXPIRATION_TIME,
-  JWT_SECRET,
   REFRESH_TOKEN_EXPIRY,
 } from "../../libs/utils/constants";
 import { v4 as uuidv4 } from "uuid";
@@ -68,21 +61,28 @@ export const googleAuthorizeHandler = async (
   const stateParam = url.searchParams.get("state");
   let platform;
   const redirectUri = url.searchParams.get("redirect_uri");
-  if (redirectUri === APP_SCHEME) {
+
+  if (redirectUri === "deendaily://") {
     platform = "mobile";
   } else {
     return reply.status(400).send({ error: "Invalid redirect URI" });
   }
   const state = platform + "|" + stateParam;
+
   const params = new URLSearchParams({
-    client_id: GOOGLE_CLIENT_ID,
-    redirect_uri: GOOGLE_REDIRECT_URI,
+    client_id:
+      "1036129451243-b075ldp36o545mk3232h6eg45gf38l5b.apps.googleusercontent.com",
+    redirect_uri:
+      "https://821a5e1d4274.ngrok-free.app/api/v1/auth/google/callback",
     response_type: "code",
     scope: "openid profile email",
     state,
     prompt: "select_account",
   });
-  return reply.redirect(`${GOOGLE_AUTH_URL}?${params.toString()}`);
+
+  return reply.redirect(
+    `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`
+  );
 };
 
 /**
@@ -94,6 +94,7 @@ export const googleCallbackHandler = async (
   reply: FastifyReply
 ) => {
   const { code, state: combinedPlatformAndState } = request.query as any;
+
   if (!combinedPlatformAndState) {
     return reply.status(400).send({ error: "Invalid state" });
   }
@@ -105,7 +106,7 @@ export const googleCallbackHandler = async (
   const redirectTo =
     platform === "web"
       ? `${BASE_URL}?${outgoingParams.toString()}`
-      : `${APP_SCHEME}?${outgoingParams.toString()}`;
+      : `deendaily://?${outgoingParams.toString()}`;
 
   return reply.redirect(redirectTo);
 };
@@ -119,7 +120,7 @@ export const googleTokenHandler = async (
   reply: FastifyReply
 ) => {
   const { code } = request.body as any;
-
+  console.log("CODEEE", code);
   if (!code) {
     return reply.status(400).send({ error: "Missing authorization code" });
   }
@@ -134,9 +135,11 @@ export const googleTokenHandler = async (
     const tokenRes = await axios.post(
       GOOGLE_TOKEN_URL,
       qs.stringify({
-        client_id: GOOGLE_CLIENT_ID,
-        client_secret: GOOGLE_CLIENT_SECRET,
-        redirect_uri: GOOGLE_REDIRECT_URI,
+        client_id:
+          "1036129451243-b075ldp36o545mk3232h6eg45gf38l5b.apps.googleusercontent.com",
+        client_secret: "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",
+        redirect_uri:
+          "https://821a5e1d4274.ngrok-free.app/api/v1/auth/google/callback",
         grant_type: "authorization_code",
         code,
       }),
@@ -205,11 +208,12 @@ export const kakaoAuthorizeHandler = async (
   }
 
   const url = new URL(request.url, BASE_URL);
+
   const redirectUri = url.searchParams.get("redirect_uri");
   const state = url.searchParams.get("state");
 
   let platform;
-  if (redirectUri === APP_SCHEME) {
+  if (redirectUri === "deendaily://") {
     platform = "mobile";
   } else {
     return reply.status(400).send({ error: "Invalid redirect URI" });
@@ -218,14 +222,17 @@ export const kakaoAuthorizeHandler = async (
   const combinedState = platform + "|" + state;
 
   const params = new URLSearchParams({
-    client_id: KAKAO_CLIENT_ID,
-    redirect_uri: KAKAO_REDIRECT_URI,
+    client_id: "2385ed6ce3415ea4324d08c9afe620d5",
+    redirect_uri:
+      "https://821a5e1d4274.ngrok-free.app/api/v1/auth/kakao/callback",
     response_type: "code",
     state: combinedState,
     prompt: "select_account",
   });
 
-  return reply.redirect(`${KAKAO_AUTH_URL}?${params.toString()}`);
+  return reply.redirect(
+    `https://kauth.kakao.com/oauth/authorize?${params.toString()}`
+  );
 };
 
 /**
@@ -255,7 +262,7 @@ export const kakaoCallbackHandler = async (
   const redirectTo =
     platform === "web"
       ? `${BASE_URL}?${outgoingParams.toString()}`
-      : `${APP_SCHEME}?${outgoingParams.toString()}`;
+      : `deendaily://?${outgoingParams.toString()}`;
 
   return reply.redirect(redirectTo);
 };
@@ -269,6 +276,7 @@ export const kakaoTokenHandler = async (
   reply: FastifyReply
 ) => {
   const { code } = request.body as any;
+  console.log("CODE", code);
 
   if (!code) {
     return reply.status(400).send({ error: "Missing authorization code" });
@@ -281,11 +289,12 @@ export const kakaoTokenHandler = async (
 
   // Exchange code for access token
   const tokenResponse = await axios.post(
-    KAKAO_TOKEN_URL,
+    "https://kauth.kakao.com/oauth/token",
     qs.stringify({
-      client_id: KAKAO_CLIENT_ID,
-      client_secret: KAKAO_CLIENT_SECRET,
-      redirect_uri: KAKAO_REDIRECT_URI,
+      client_id: "2385ed6ce3415ea4324d08c9afe620d5",
+      client_secret: "x9TAFDhTYU2Pr31kGDQoXZ1Pah41tvYL",
+      redirect_uri:
+        "https://821a5e1d4274.ngrok-free.app/api/v1/auth/kakao/callback",
       grant_type: "authorization_code",
       code,
     }),
@@ -295,6 +304,7 @@ export const kakaoTokenHandler = async (
       },
     }
   );
+  console.log("token response", tokenResponse);
 
   const data = tokenResponse.data;
 
@@ -302,7 +312,7 @@ export const kakaoTokenHandler = async (
     return reply.status(400).send({ error: "Missing access token from Kakao" });
   }
 
-  const userResponse = await axios.get(KAKAO_USER_INFO_URL, {
+  const userResponse = await axios.get("https://kapi.kakao.com/v2/user/me", {
     headers: {
       Authorization: `Bearer ${data.access_token}`,
       "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
@@ -368,11 +378,12 @@ export const naverAuthorizeHandler = async (
   }
 
   const url = new URL(request.url, BASE_URL);
+
   const redirectUri = url.searchParams.get("redirect_uri");
   const state = url.searchParams.get("state");
 
   let platform;
-  if (redirectUri === APP_SCHEME) {
+  if (redirectUri === "deendaily://") {
     platform = "mobile";
   } else {
     return reply.status(400).send({ error: "Invalid redirect URI" });
@@ -381,13 +392,16 @@ export const naverAuthorizeHandler = async (
   const combinedState = platform + "|" + state;
 
   const params = new URLSearchParams({
-    client_id: NAVER_CLIENT_ID,
-    redirect_uri: NAVER_REDIRECT_URI,
+    client_id: "AJcafV4oJQ2u0ptT1LeN",
+    redirect_uri:
+      "https://821a5e1d4274.ngrok-free.app/api/v1/auth/naver/callback",
     response_type: "code",
     state: combinedState,
   });
 
-  return reply.redirect(`${NAVER_AUTH_URL}?${params.toString()}`);
+  return reply.redirect(
+    `https://nid.naver.com/oauth2.0/authorize?${params.toString()}`
+  );
 };
 
 /**
@@ -399,6 +413,7 @@ export const naverCallbackHandler = async (
   reply: FastifyReply
 ) => {
   const url = new URL(request.url, BASE_URL);
+
   const code = url.searchParams.get("code");
   const combinedPlatformAndState = url.searchParams.get("state");
 
@@ -415,7 +430,8 @@ export const naverCallbackHandler = async (
   const redirectTo =
     platform === "web"
       ? `${BASE_URL}?${outgoingParams.toString()}`
-      : `${APP_SCHEME}?${outgoingParams.toString()}`;
+      : `deendaily://?${outgoingParams.toString()}`;
+  console.log("REDIRECT", redirectTo);
 
   return reply.redirect(redirectTo);
 };
@@ -447,8 +463,8 @@ export const naverTokenHandler = async (
   const tokenResponse = await axios.post(
     NAVER_TOKEN_URL,
     qs.stringify({
-      client_id: NAVER_CLIENT_ID,
-      client_secret: NAVER_CLIENT_SECRET,
+      client_id: "AJcafV4oJQ2u0ptT1LeN",
+      client_secret: "x7C0aaMQEa",
       redirect_uri: NAVER_REDIRECT_URI,
       grant_type: "authorization_code",
       code,
@@ -459,6 +475,7 @@ export const naverTokenHandler = async (
       },
     }
   );
+  console.log("DATA", tokenResponse);
 
   const data = tokenResponse.data;
   if (!data.access_token) {

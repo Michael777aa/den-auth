@@ -1,4 +1,7 @@
 // utils/constants.ts
+import dotenv from "dotenv";
+dotenv.config();
+
 export const JWT_EXPIRATION_TIME = "20s"; // 20 seconds
 export const REFRESH_TOKEN_EXPIRY = "30d"; // 30 days
 

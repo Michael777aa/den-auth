@@ -1,0 +1,28 @@
+t=2025-07-20T10:05:52+0900 lvl=info msg="no configuration paths supplied"
+t=2025-07-20T10:05:52+0900 lvl=warn msg="ngrok config file found at both XDG and legacy locations, using XDG location" xdg_path="/Users/mikemike/Library/Application Support/ngrok/ngrok.yml" legacy_path=/Users/mikemike/.ngrok2/ngrok.yml
+t=2025-07-20T10:05:52+0900 lvl=info msg="using configuration at default config path" path="/Users/mikemike/Library/Application Support/ngrok/ngrok.yml"
+t=2025-07-20T10:05:52+0900 lvl=info msg="open config file" path="/Users/mikemike/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2025-07-20T10:05:52+0900 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4040 allow_hosts=[]
+t=2025-07-20T10:05:52+0900 lvl=info msg="client session established" obj=tunnels.session
+t=2025-07-20T10:05:52+0900 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2025-07-20T10:05:52+0900 lvl=info msg="started tunnel" obj=tunnels name=command_line addr=http://localhost:4325 url=https://9f9271465468.ngrok-free.app
+t=2025-07-20T10:05:53+0900 lvl=info msg="update available" obj=updater
+t=2025-07-20T10:06:07+0900 lvl=warn msg="failed to open private leg" id=2de6e3a3a7cb privaddr=localhost:4325 err="dial tcp [::1]:4325: connect: connection refused"
+t=2025-07-20T10:06:07+0900 lvl=warn msg="failed to open private leg" id=b98b55cdf3fc privaddr=localhost:4325 err="dial tcp [::1]:4325: connect: connection refused"
+t=2025-07-20T10:06:21+0900 lvl=info msg="join connections" obj=join id=4103178d514e l=127.0.0.1:4325 r=183.108.17.198:58888
+t=2025-07-20T10:07:24+0900 lvl=info msg="received stop request" obj=app stopReq="{err:<nil> restart:false}"
+t=2025-07-20T10:07:24+0900 lvl=info msg="session closing" obj=tunnels.session err=nil
+t=2025-07-20T10:07:24+0900 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=3322eb163bfa err="reconnecting session closed"
+t=2025-07-20T10:07:24+0900 lvl=info msg="no configuration paths supplied"
+t=2025-07-20T10:07:24+0900 lvl=warn msg="ngrok config file found at both XDG and legacy locations, using XDG location" xdg_path="/Users/mikemike/Library/Application Support/ngrok/ngrok.yml" legacy_path=/Users/mikemike/.ngrok2/ngrok.yml
+t=2025-07-20T10:07:24+0900 lvl=info msg="using configuration at default config path" path="/Users/mikemike/Library/Application Support/ngrok/ngrok.yml"
+t=2025-07-20T10:07:24+0900 lvl=info msg="open config file" path="/Users/mikemike/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2025-07-20T10:07:24+0900 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4040 allow_hosts=[]
+t=2025-07-20T10:07:25+0900 lvl=info msg="client session established" obj=tunnels.session
+t=2025-07-20T10:07:25+0900 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2025-07-20T10:07:25+0900 lvl=info msg="started tunnel" obj=tunnels name=command_line addr=http://localhost:4325 url=https://df5734b54d2c.ngrok-free.app
+t=2025-07-20T10:07:25+0900 lvl=info msg="update available" obj=updater
+t=2025-07-20T10:07:29+0900 lvl=info msg="received stop request" obj=app stopReq="{err:<nil> restart:false}"
+t=2025-07-20T10:07:29+0900 lvl=info msg="session closing" obj=tunnels.session err=nil
+t=2025-07-20T10:07:29+0900 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=023085749ef0 err="reconnecting session closed"
+t=2025-07-20T10:07:29+0900 lvl=info msg="no more state changes" obj=tunnels.session
