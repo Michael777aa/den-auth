@@ -1,105 +1,186 @@
 import nodemailer from "nodemailer";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import crypto from "crypto";
-import { authModel } from "./traditionalauth.schema";
+import { authModel } from "./traditionalAuth.schema";
+import { EMAIL_PASS, EMAIL_USER } from "../../libs/utils/constants";
+import { StreamChat } from "stream-chat";
+import { streamApiKey, streamApiSecret } from "../../libs/utils/constants";
 
 export class AuthService {
   private static readonly SALT_ROUNDS = 10;
   private static readonly JWT_SECRET =
-    process.env.JWT_SECRET || "your-secret-key";
+    process.env.JWT_SECRET || "dsafasdasdfsdafdsawe";
   private static readonly JWT_EXPIRES_IN = "7d";
+  private static readonly REFRESH_EXPIRES_IN = "30d";
 
-  static async signup(email: string, password: string, name: string) {
-    const existingUser = await authModel.findOne({ email });
-    if (existingUser) throw new Error("User already exists");
+  /**
+   * Register a new user with email and password
+   * 이메일과 비밀번호로 새 사용자를 등록합니다.
+   */
 
-    const hashedPassword = await bcrypt.hash(password, this.SALT_ROUNDS);
-    const user: any = await authModel.create({
-      email,
-      password: hashedPassword,
-      name,
-    });
+  async signup(email: string, password: string, name: string) {
+    try {
+      const existingUser = await authModel.findOne({ email });
+      if (existingUser) throw new Error("User already exists");
 
-    return this.generateTokens(user);
-  }
+      const hashedPassword = await bcrypt.hash(
+        password,
+        AuthService.SALT_ROUNDS
+      );
 
-  static async login(email: string, password: string) {
-    const user = await authModel.findOne({ email }).select("+password");
-    if (!user || !user.password) throw new Error("Invalid credentials");
+      const user = await authModel.create({
+        email,
+        password: hashedPassword,
+        name,
+      });
 
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) throw new Error("Invalid credentials");
+      if (!streamApiKey || !streamApiSecret) {
+        throw new Error(
+          "STREAM_API_KEY and STREAM_API_SECRET must be defined in environment variables"
+        );
+      }
 
-    return this.generateTokens(user);
-  }
+      const client = StreamChat.getInstance(streamApiKey, streamApiSecret);
+      console.log("CLIENT", client);
+      const token = client.createToken(user._id.toString());
 
-  static async requestPasswordReset(email: string) {
-    const user = await authModel.findOne({ email });
-    if (!user) throw new Error("User not found");
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      throw new Error("Invalid credentials");
+      return { ...this.generateTokens(user), streamToken: token };
+    } catch (error) {
+      console.error("Error in signup:", error);
+      throw error;
     }
-    const code = Math.floor(1000 + Math.random() * 9000).toString(); // 4-digit code
-    user.resetPasswordToken = code;
-    user.resetPasswordExpire = new Date(Date.now() + 10 * 60 * 1000); // valid for 10 minutes
-    await user.save();
-
-    await this.sendResetCode(user.email, code);
-
-    return { message: "Reset code sent to email." };
   }
 
-  private static async sendResetCode(to: string, code: string) {
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    });
+  /**
+   * Login user with email and password
+   * 이메일과 비밀번호로 사용자 로그인
+   */
+  async login(email: string, password: string) {
+    try {
+      const user = await authModel.findOne({ email }).select("+password");
+      if (!user || !user.password) throw new Error("Invalid credentials");
 
-    await transporter.sendMail({
-      from: `"Deen Daily" <${process.env.EMAIL_USER}>`,
-      to,
-      subject: "Your Deen Daily Password Reset Code",
-      html: `
-        <p>Your password reset code is:</p>
-        <h2>${code}</h2>
-        <p>This code is valid for 10 minutes.</p>
-        <p>If you didn’t request this, please ignore this email.</p>
-      `,
-    });
+      const isMatch = await bcrypt.compare(password, user.password);
+      if (!isMatch) throw new Error("Invalid credentials");
+
+      if (!streamApiKey || !streamApiSecret) {
+        throw new Error(
+          "STREAM_API_KEY and STREAM_API_SECRET must be defined in environment variables"
+        );
+      }
+      const client = StreamChat.getInstance(streamApiKey, streamApiSecret);
+
+      const token = client.createToken(user._id.toString());
+      return { ...this.generateTokens(user), streamToken: token };
+    } catch (error) {
+      console.error("Error in login:", error);
+      throw error;
+    }
   }
 
-  static async resetPassword(token: string, newPassword: string) {
-    const user = await authModel.findOne({
-      resetPasswordToken: token,
-      resetPasswordExpire: { $gt: Date.now() },
-    });
+  /**
+   * Request password reset by sending a code to email
+   * 이메일로 비밀번호 재설정 코드 전송
+   */
+  async requestPasswordReset(email: string) {
+    try {
+      const user = await authModel.findOne({ email });
+      if (!user) throw new Error("User not found");
 
-    if (!user) throw new Error("Invalid or expired token");
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) throw new Error("Invalid email format");
 
-    user.password = await bcrypt.hash(newPassword, this.SALT_ROUNDS);
-    user.resetPasswordToken = undefined;
-    user.resetPasswordExpire = undefined;
-    await user.save();
+      const code = Math.floor(1000 + Math.random() * 9000).toString(); // 4-digit code
+      user.resetPasswordToken = code;
+      user.resetPasswordExpire = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
+      await user.save();
 
-    return this.generateTokens(user);
+      await this.sendResetCode(user.email, code);
+      return { message: "Reset code sent to email." };
+    } catch (error) {
+      console.error("Error in requestPasswordReset:", error);
+      throw error;
+    }
   }
 
-  private static generateTokens(user: any) {
-    const payload = { id: user._id, email: user.email, name: user.name };
-    const accessToken = jwt.sign(payload, this.JWT_SECRET, {
-      expiresIn: this.JWT_EXPIRES_IN,
+  /**
+   * Reset password using the code (token)
+   * 코드(토큰)으로 비밀번호 재설정
+   */
+  async resetPassword(token: string, newPassword: string) {
+    try {
+      const user = await authModel.findOne({
+        resetPasswordToken: token,
+        resetPasswordExpire: { $gt: Date.now() },
+      });
+
+      if (!user) throw new Error("Invalid or expired token");
+
+      user.password = await bcrypt.hash(newPassword, AuthService.SALT_ROUNDS);
+      user.resetPasswordToken = undefined;
+      user.resetPasswordExpire = undefined;
+      await user.save();
+
+      return this.generateTokens(user);
+    } catch (error) {
+      console.error("Error in resetPassword:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Generate access and refresh tokens
+   * 액세스 및 리프레시 토큰 생성
+   */
+  private generateTokens(user: any) {
+    const payload = {
+      id: user._id,
+      email: user.email,
+      name: user.name,
+      type: user.type || "user",
+    };
+
+    const accessToken = jwt.sign(payload, AuthService.JWT_SECRET, {
+      expiresIn: AuthService.JWT_EXPIRES_IN,
     });
+
     const refreshToken = jwt.sign(
       { ...payload, type: "refresh" },
-      this.JWT_SECRET,
-      { expiresIn: "30d" }
+      AuthService.JWT_SECRET,
+      { expiresIn: AuthService.REFRESH_EXPIRES_IN }
     );
 
     return { accessToken, refreshToken };
+  }
+
+  /**
+   * Send reset code via email
+   * 이메일로 재설정 코드 전송
+   */
+  private async sendResetCode(to: string, code: string) {
+    try {
+      const transporter = nodemailer.createTransport({
+        service: "gmail",
+        auth: {
+          user: EMAIL_USER,
+          pass: EMAIL_PASS,
+        },
+      });
+
+      await transporter.sendMail({
+        from: `"Deen Daily" <${EMAIL_USER}>`,
+        to,
+        subject: "Your Deen Daily Password Reset Code",
+        html: `
+          <p>Your password reset code is:</p>
+          <h2>${code}</h2>
+          <p>This code is valid for 10 minutes.</p>
+          <p>If you didn’t request this, please ignore this email.</p>
+        `,
+      });
+    } catch (error) {
+      console.error("Error in sendResetCode:", error);
+      throw error;
+    }
   }
 }

@@ -1,69 +1,30 @@
 // Social authentication API routes for Google, Kakao, and Naver, including user info and token refresh endpoints.
-// 구글, 카카오, 네이버 소셜 인증 API 라우트와 사용자 정보, 토큰 갱신 엔드포인트 포함
-
 import { FastifyInstance } from "fastify";
 import {
+  forgotPassword,
   googleAuthorizeHandler,
   googleCallbackHandler,
   googleTokenHandler,
   kakaoAuthorizeHandler,
   kakaoCallbackHandler,
   kakaoTokenHandler,
+  login,
   naverAuthorizeHandler,
   naverCallbackHandler,
   naverTokenHandler,
   refreshTokenHandler,
+  resetPassword,
+  signup,
   userInfoHandler,
 } from "./member.controller";
-import { AuthService } from "./auth.service";
 
 // Register authentication endpoints for each social provider
-// 각 소셜 제공자에 대한 인증 엔드포인트 등록
-
 export const authRoutes = async (server: FastifyInstance) => {
-  server.post("/signup", async (request, reply) => {
-    try {
-      const { email, password, name } = request.body as any;
-
-      const tokens = await AuthService.signup(email, password, name);
-
-      return tokens;
-    } catch (error: any) {
-      return reply.status(400).send({ error: error.message });
-    }
-  });
-
-  server.post("/login", async (request, reply) => {
-    try {
-      const { email, password } = request.body as any;
-      console.log("LOGIN", request.body);
-
-      const tokens = await AuthService.login(email, password);
-      return tokens;
-    } catch (error: any) {
-      return reply.status(401).send({ error: error.message });
-    }
-  });
-
-  server.post("/forgot-password", async (request, reply) => {
-    try {
-      const { email } = request.body as any;
-      const resetToken = await AuthService.requestPasswordReset(email);
-      return { resetToken }; // For testing only. Replace with email sending logic.
-    } catch (error: any) {
-      return reply.status(400).send({ error: error.message });
-    }
-  });
-
-  server.post("/reset-password", async (request, reply) => {
-    try {
-      const { code, newPassword } = request.body as any;
-      const tokens = await AuthService.resetPassword(code, newPassword);
-      return tokens;
-    } catch (error: any) {
-      return reply.status(400).send({ error: error.message });
-    }
-  });
+  // Traditional Auth
+  server.post("/signup", signup);
+  server.post("/login", login);
+  server.post("/forgot-password", forgotPassword);
+  server.post("/reset-password", resetPassword);
 
   // Social Auth Routes
   server.get("/google/authorize", googleAuthorizeHandler);

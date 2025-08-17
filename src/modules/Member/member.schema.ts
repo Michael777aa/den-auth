@@ -10,6 +10,11 @@ const memberSchema = new Schema(
     email: { type: String, required: true }, // User email / 사용자 이메일
     name: { type: String, required: true }, // User name / 사용자 이름
     sub: { type: String, required: true }, // Provider user ID / 소셜 제공자 사용자 ID
+    type: {
+      type: String,
+      enum: ["ADMIN", "USER"],
+      default: "USER",
+    },
     picture: { type: String }, // Profile image / 프로필 이미지
     provider: {
       type: String,

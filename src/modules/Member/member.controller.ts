@@ -1,7 +1,6 @@
 // member.controller.ts
 import { FastifyRequest, FastifyReply } from "fastify";
 import { MemberService } from "./member.service";
-
 import * as jose from "jose";
 import {
   APP_SCHEME,
@@ -24,17 +23,10 @@ import {
 import { v4 as uuidv4 } from "uuid";
 import axios from "axios";
 import qs from "qs";
-/**
-  By centralizing all social authentication logic in a single controller,
-  this approach reduces code duplication, simplifies debugging and maintenance,
-  enhances scalability for adding more providers in the future, ensures a consistent API structure,
-  and promotes better team collaboration by making the authentication flow transparent and organized.
+import { AuthService } from "./auth.service";
 
-  모든 소셜 인증 로직을 하나의 컨트롤러로 통합함으로써, 코드 중복을 줄이고 디버깅과 유지보수를 단순화하며,
-  향후 새로운 소셜 제공자 추가 시 확장성을 높이고, 일관된 API 구조를 보장하며,
-  인증 플로우가 투명하고 체계적으로 관리되어 팀 협업도 더욱 원활하게 만들 수 있습니다.
- */
 const memberService = new MemberService();
+const authService = new AuthService();
 /**
  *
  * Social Authentication Controller for Google, Kakao, Naver
@@ -679,5 +671,47 @@ export const refreshTokenHandler = async (
   } catch (error) {
     console.error("Refresh error:", error);
     return reply.status(500).send({ error: "Failed to refresh token" });
+  }
+};
+export const signup = async (request: FastifyRequest, reply: FastifyReply) => {
+  try {
+    const { email, password, name } = request.body as any;
+    const tokens = await authService.signup(email, password, name);
+    return tokens;
+  } catch (err: any) {
+    return reply.status(400).send({ error: err.message });
+  }
+};
+export const login = async (request: FastifyRequest, reply: FastifyReply) => {
+  try {
+    const { email, password } = request.body as any;
+    const tokens = await authService.login(email, password);
+    return tokens;
+  } catch (err: any) {
+    return reply.status(400).send({ error: err.message });
+  }
+};
+export const forgotPassword = async (
+  request: FastifyRequest,
+  reply: FastifyReply
+) => {
+  try {
+    const { email } = request.body as any;
+    const resetToken = await authService.requestPasswordReset(email);
+    return { resetToken }; // For testing only. Replace with email sending logic.
+  } catch (err: any) {
+    return reply.status(400).send({ error: err.message });
+  }
+};
+export const resetPassword = async (
+  request: FastifyRequest,
+  reply: FastifyReply
+) => {
+  try {
+    const { code, newPassword } = request.body as any;
+    const tokens = await authService.resetPassword(code, newPassword);
+    return tokens;
+  } catch (err: any) {
+    return reply.status(400).send({ error: err.message });
   }
 };

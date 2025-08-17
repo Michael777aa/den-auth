@@ -4,6 +4,7 @@ dotenv.config({
 });
 import mongoose from "mongoose";
 import initApp from "./app";
+import logger from "./libs/utils/logger";
 
 // 데이터베이스 연결 및 서버 시작
 // Database connection and server startup
@@ -11,7 +12,7 @@ mongoose.set("strictQuery", false);
 mongoose
   .connect(process.env.MONGO_URL as string, {})
   .then(async () => {
-    console.log("MongoDB successfully connected to the server");
+    logger.info("MongoDB successfully connected to the server");
     const PORT = process.env.PORT ?? 3000;
     const server = await initApp();
 
@@ -20,15 +21,15 @@ mongoose
         port: Number(PORT),
         host: "0.0.0.0",
       },
-      (err) => {
+      (err: any) => {
         if (err) {
-          console.error(err);
+          logger.error(err);
           process.exit(1);
         }
-        console.log(`Project running on http://localhost:${PORT}`);
+        logger.info(`Project running on http://localhost:${PORT}`);
       }
     );
   })
   .catch((err) => {
-    console.log("ERROR on connection MongoDB", err);
+    logger.error("ERROR on connection MongoDB", err);
   });

@@ -2,9 +2,11 @@
 import dotenv from "dotenv";
 dotenv.config();
 
+// Tokens
 export const JWT_EXPIRATION_TIME = "20s"; // 20 seconds
 export const REFRESH_TOKEN_EXPIRY = "30d"; // 30 days
 
+// Google OAuth Constants
 export const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 export const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 export const GOOGLE_REDIRECT_URI = `${process.env.EXPO_PUBLIC_BASE_URL}/api/v1/auth/google/callback`;
@@ -31,3 +33,7 @@ export const NAVER_USER_INFO_URL = "https://openapi.naver.com/v1/nid/me";
 export const BASE_URL = process.env.EXPO_PUBLIC_BASE_URL;
 export const APP_SCHEME = process.env.EXPO_PUBLIC_SCHEME;
 export const JWT_SECRET = process.env.JWT_SECRET;
+export const EMAIL_USER = process.env.EMAIL_USER;
+export const EMAIL_PASS = process.env.EMAIL_PASS;
+export const streamApiKey = process.env.STREAM_API_KEY;
+export const streamApiSecret = process.env.STREAM_API_SECRET;
