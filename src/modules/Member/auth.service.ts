@@ -34,17 +34,7 @@ export class AuthService {
         name,
       });
 
-      if (!streamApiKey || !streamApiSecret) {
-        throw new Error(
-          "STREAM_API_KEY and STREAM_API_SECRET must be defined in environment variables"
-        );
-      }
-
-      const client = StreamChat.getInstance(streamApiKey, streamApiSecret);
-      console.log("CLIENT", client);
-      const token = client.createToken(user._id.toString());
-
-      return { ...this.generateTokens(user), streamToken: token };
+      return this.generateTokens(user);
     } catch (error) {
       console.error("Error in signup:", error);
       throw error;

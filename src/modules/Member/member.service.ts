@@ -12,13 +12,6 @@ export class MemberService {
 
   async findOrCreateSocialMember(user: any) {
     try {
-      if (!streamApiKey || !streamApiSecret) {
-        throw new Error(
-          "STREAM_API_KEY and STREAM_API_SECRET must be defined in environment variables"
-        );
-      }
-      const client = StreamChat.getInstance(streamApiKey, streamApiSecret);
-
       // Find member by provider and sub / provider와 sub로 멤버 찾기
       let member: any = await memberModel.findOne({
         provider: user.provider,
@@ -37,23 +30,8 @@ export class MemberService {
         });
         await member.save();
       }
-      const streamUserId = member._id.toString();
 
-      await client.upsertUser({
-        id: streamUserId,
-        name: member.name || member.email,
-        image: member.picture || undefined,
-      });
-
-      const token = client.createToken(streamUserId);
-      member.stream = token;
-      console.log("TOKEN", token);
-      console.log("MEMBER", member);
-
-      return {
-        ...member.toObject(),
-        streamToken: token,
-      };
+      return member;
     } catch (error) {
       console.error("Error in findOrCreateSocialMember:", error);
       throw error;
