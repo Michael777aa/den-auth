@@ -5,6 +5,7 @@ export declare const memberModel: mongoose.Model<{
     updatedAt: NativeDate;
 } & {
     email: string;
+    type: "ADMIN" | "USER";
     name: string;
     sub: string;
     provider: MemberProvider;
@@ -15,6 +16,7 @@ export declare const memberModel: mongoose.Model<{
     updatedAt: NativeDate;
 } & {
     email: string;
+    type: "ADMIN" | "USER";
     name: string;
     sub: string;
     provider: MemberProvider;
@@ -25,6 +27,7 @@ export declare const memberModel: mongoose.Model<{
     updatedAt: NativeDate;
 } & {
     email: string;
+    type: "ADMIN" | "USER";
     name: string;
     sub: string;
     provider: MemberProvider;
@@ -41,6 +44,7 @@ export declare const memberModel: mongoose.Model<{
     updatedAt: NativeDate;
 } & {
     email: string;
+    type: "ADMIN" | "USER";
     name: string;
     sub: string;
     provider: MemberProvider;
@@ -51,6 +55,7 @@ export declare const memberModel: mongoose.Model<{
     updatedAt: NativeDate;
 } & {
     email: string;
+    type: "ADMIN" | "USER";
     name: string;
     sub: string;
     provider: MemberProvider;
@@ -61,6 +66,7 @@ export declare const memberModel: mongoose.Model<{
     updatedAt: NativeDate;
 } & {
     email: string;
+    type: "ADMIN" | "USER";
     name: string;
     sub: string;
     provider: MemberProvider;

@@ -1,8 +1,8 @@
 "use strict";
-// Service for finding or creating a social login member in the database.
-// 소셜 로그인 사용자를 데이터베이스에서 찾거나 새로 생성하는 서비스입니다.
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MemberService = void 0;
+// Service for finding or creating a social login member in the database.
+// 소셜 로그인 사용자를 데이터베이스에서 찾거나 새로 생성하는 서비스입니다.
 const member_schema_1 = require("./member.schema");
 class MemberService {
     /**

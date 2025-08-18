@@ -72,7 +72,7 @@ export const googleAuthorizeHandler = async (
     client_id:
       "1036129451243-b075ldp36o545mk3232h6eg45gf38l5b.apps.googleusercontent.com",
     redirect_uri:
-      "https://821a5e1d4274.ngrok-free.app/api/v1/auth/google/callback",
+      "https://deen-daily-auth.onrender.com/api/v1/auth/google/callback",
     response_type: "code",
     scope: "openid profile email",
     state,
@@ -138,7 +138,7 @@ export const googleTokenHandler = async (
           "1036129451243-b075ldp36o545mk3232h6eg45gf38l5b.apps.googleusercontent.com",
         client_secret: "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",
         redirect_uri:
-          "https://821a5e1d4274.ngrok-free.app/api/v1/auth/google/callback",
+          "https://deen-daily-auth.onrender.com/api/v1/auth/google/callback",
         grant_type: "authorization_code",
         code,
       }),
@@ -223,7 +223,7 @@ export const kakaoAuthorizeHandler = async (
   const params = new URLSearchParams({
     client_id: "2385ed6ce3415ea4324d08c9afe620d5",
     redirect_uri:
-      "https://821a5e1d4274.ngrok-free.app/api/v1/auth/kakao/callback",
+      "https://deen-daily-auth.onrender.com/api/v1/auth/kakao/callback",
     response_type: "code",
     state: combinedState,
     prompt: "select_account",
@@ -293,7 +293,7 @@ export const kakaoTokenHandler = async (
       client_id: "2385ed6ce3415ea4324d08c9afe620d5",
       client_secret: "x9TAFDhTYU2Pr31kGDQoXZ1Pah41tvYL",
       redirect_uri:
-        "https://821a5e1d4274.ngrok-free.app/api/v1/auth/kakao/callback",
+        "https://deen-daily-auth.onrender.com/api/v1/auth/kakao/callback",
       grant_type: "authorization_code",
       code,
     }),
@@ -393,7 +393,7 @@ export const naverAuthorizeHandler = async (
   const params = new URLSearchParams({
     client_id: "AJcafV4oJQ2u0ptT1LeN",
     redirect_uri:
-      "https://821a5e1d4274.ngrok-free.app/api/v1/auth/naver/callback",
+      "https://deen-daily-auth.onrender.com/api/v1/auth/naver/callback",
     response_type: "code",
     state: combinedState,
   });

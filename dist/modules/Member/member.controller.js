@@ -36,25 +36,34 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.refreshTokenHandler = exports.userInfoHandler = exports.naverTokenHandler = exports.naverCallbackHandler = exports.naverAuthorizeHandler = exports.kakaoTokenHandler = exports.kakaoCallbackHandler = exports.kakaoAuthorizeHandler = exports.googleTokenHandler = exports.googleCallbackHandler = exports.googleAuthorizeHandler = void 0;
+exports.resetPassword = exports.forgotPassword = exports.login = exports.signup = exports.refreshTokenHandler = exports.userInfoHandler = exports.naverTokenHandler = exports.naverCallbackHandler = exports.naverAuthorizeHandler = exports.kakaoTokenHandler = exports.kakaoCallbackHandler = exports.kakaoAuthorizeHandler = exports.googleTokenHandler = exports.googleCallbackHandler = exports.googleAuthorizeHandler = void 0;
 const member_service_1 = require("./member.service");
-const constants_1 = require("../../libs/utils/constants");
 const jose = __importStar(require("jose"));
-const constants_2 = require("../../libs/utils/constants");
 const uuid_1 = require("uuid");
 const axios_1 = __importDefault(require("axios"));
 const qs_1 = __importDefault(require("qs"));
-/**
-  By centralizing all social authentication logic in a single controller,
-  this approach reduces code duplication, simplifies debugging and maintenance,
-  enhances scalability for adding more providers in the future, ensures a consistent API structure,
-  and promotes better team collaboration by making the authentication flow transparent and organized.
-
-  모든 소셜 인증 로직을 하나의 컨트롤러로 통합함으로써, 코드 중복을 줄이고 디버깅과 유지보수를 단순화하며,
-  향후 새로운 소셜 제공자 추가 시 확장성을 높이고, 일관된 API 구조를 보장하며,
-  인증 플로우가 투명하고 체계적으로 관리되어 팀 협업도 더욱 원활하게 만들 수 있습니다.
- */
+const auth_service_1 = require("./auth.service");
+// Tokens
+const JWT_EXPIRATION_TIME = "20s"; // 20 seconds
+const REFRESH_TOKEN_EXPIRY = "30d"; // 30 days
+const JWT_SECRET = process.env.JWT_SECRET;
+// Google OAuth Constants
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
+// Kakao OAuth Constants
+const KAKAO_CLIENT_ID = process.env.KAKAO_CLIENT_ID;
+const KAKAO_CLIENT_SECRET = process.env.KAKAO_CLIENT_SECRET;
+// Naver OAuth Constants
+const NAVER_CLIENT_ID = process.env.NAVER_CLIENT_ID;
+const NAVER_CLIENT_SECRET = process.env.NAVER_CLIENT_SECRET;
+const NAVER_REDIRECT_URI = `${process.env.EXPO_PUBLIC_BASE_URL}/api/v1/auth/naver/callback`;
+const NAVER_TOKEN_URL = "https://nid.naver.com/oauth2.0/token";
+const NAVER_USER_INFO_URL = "https://openapi.naver.com/v1/nid/me";
+// Environment Constants
+const BASE_URL = process.env.EXPO_PUBLIC_BASE_URL;
 const memberService = new member_service_1.MemberService();
+const authService = new auth_service_1.AuthService();
 /**
  *
  * Social Authentication Controller for Google, Kakao, Naver
@@ -70,14 +79,14 @@ const memberService = new member_service_1.MemberService();
  * 구글 인증: 사용자에게 구글 동의 페이지로 리디렉션
  */
 const googleAuthorizeHandler = async (request, reply) => {
-    if (!constants_1.GOOGLE_CLIENT_ID) {
+    if (!GOOGLE_CLIENT_ID) {
         return reply.status(500).send({ error: "GOOGLE_CLIENT_ID is not set" });
     }
-    const url = new URL(request.url, constants_1.BASE_URL);
+    const url = new URL(request.url, BASE_URL);
     const stateParam = url.searchParams.get("state");
     let platform;
     const redirectUri = url.searchParams.get("redirect_uri");
-    if (redirectUri === constants_1.APP_SCHEME) {
+    if (redirectUri === "deendaily://") {
         platform = "mobile";
     }
     else {
@@ -85,14 +94,14 @@ const googleAuthorizeHandler = async (request, reply) => {
     }
     const state = platform + "|" + stateParam;
     const params = new URLSearchParams({
-        client_id: constants_1.GOOGLE_CLIENT_ID,
-        redirect_uri: constants_1.GOOGLE_REDIRECT_URI,
+        client_id: "1036129451243-b075ldp36o545mk3232h6eg45gf38l5b.apps.googleusercontent.com",
+        redirect_uri: "https://821a5e1d4274.ngrok-free.app/api/v1/auth/google/callback",
         response_type: "code",
         scope: "openid profile email",
         state,
         prompt: "select_account",
     });
-    return reply.redirect(`${constants_1.GOOGLE_AUTH_URL}?${params.toString()}`);
+    return reply.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`);
 };
 exports.googleAuthorizeHandler = googleAuthorizeHandler;
 /**
@@ -110,8 +119,8 @@ const googleCallbackHandler = async (request, reply) => {
         state: state || "",
     });
     const redirectTo = platform === "web"
-        ? `${constants_1.BASE_URL}?${outgoingParams.toString()}`
-        : `${constants_1.APP_SCHEME}?${outgoingParams.toString()}`;
+        ? `${BASE_URL}?${outgoingParams.toString()}`
+        : `deendaily://?${outgoingParams.toString()}`;
     return reply.redirect(redirectTo);
 };
 exports.googleCallbackHandler = googleCallbackHandler;
@@ -121,19 +130,20 @@ exports.googleCallbackHandler = googleCallbackHandler;
  */
 const googleTokenHandler = async (request, reply) => {
     const { code } = request.body;
+    console.log("CODEEE", code);
     if (!code) {
         return reply.status(400).send({ error: "Missing authorization code" });
     }
-    if (!constants_1.GOOGLE_CLIENT_ID || !constants_1.GOOGLE_CLIENT_SECRET) {
+    if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
         return reply.status(400).send({
             error: "Error on google client | google secret | google redirect",
         });
     }
     try {
-        const tokenRes = await axios_1.default.post(constants_1.GOOGLE_TOKEN_URL, qs_1.default.stringify({
-            client_id: constants_1.GOOGLE_CLIENT_ID,
-            client_secret: constants_1.GOOGLE_CLIENT_SECRET,
-            redirect_uri: constants_1.GOOGLE_REDIRECT_URI,
+        const tokenRes = await axios_1.default.post(GOOGLE_TOKEN_URL, qs_1.default.stringify({
+            client_id: "1036129451243-b075ldp36o545mk3232h6eg45gf38l5b.apps.googleusercontent.com",
+            client_secret: "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",
+            redirect_uri: "https://821a5e1d4274.ngrok-free.app/api/v1/auth/google/callback",
             grant_type: "authorization_code",
             code,
         }), {
@@ -151,10 +161,10 @@ const googleTokenHandler = async (request, reply) => {
         const jti = (0, uuid_1.v4)();
         const accessToken = await new jose.SignJWT(userInfoWithoutExp)
             .setProtectedHeader({ alg: "HS256" })
-            .setExpirationTime(constants_2.JWT_EXPIRATION_TIME)
+            .setExpirationTime(JWT_EXPIRATION_TIME)
             .setSubject(sub)
             .setIssuedAt(issuedAt)
-            .sign(new TextEncoder().encode(constants_2.JWT_SECRET));
+            .sign(new TextEncoder().encode(JWT_SECRET));
         const refreshToken = await new jose.SignJWT({
             sub,
             jti,
@@ -167,9 +177,9 @@ const googleTokenHandler = async (request, reply) => {
             email_verified: userInfo.email_verified,
         })
             .setProtectedHeader({ alg: "HS256" })
-            .setExpirationTime(constants_2.REFRESH_TOKEN_EXPIRY)
+            .setExpirationTime(REFRESH_TOKEN_EXPIRY)
             .setIssuedAt(issuedAt)
-            .sign(new TextEncoder().encode(constants_2.JWT_SECRET));
+            .sign(new TextEncoder().encode(JWT_SECRET));
         await memberService.findOrCreateSocialMember(userInfo);
         return reply.send({
             accessToken,
@@ -187,14 +197,14 @@ exports.googleTokenHandler = googleTokenHandler;
  * 카카오 인증: 사용자에게 카카오 동의 페이지로 리디렉션
  */
 const kakaoAuthorizeHandler = async (request, reply) => {
-    if (!constants_1.KAKAO_CLIENT_ID) {
+    if (!KAKAO_CLIENT_ID) {
         return reply.status(500).send({ error: "KAKAO_CLIENT_ID is not set" });
     }
-    const url = new URL(request.url, constants_1.BASE_URL);
+    const url = new URL(request.url, BASE_URL);
     const redirectUri = url.searchParams.get("redirect_uri");
     const state = url.searchParams.get("state");
     let platform;
-    if (redirectUri === constants_1.APP_SCHEME) {
+    if (redirectUri === "deendaily://") {
         platform = "mobile";
     }
     else {
@@ -202,13 +212,13 @@ const kakaoAuthorizeHandler = async (request, reply) => {
     }
     const combinedState = platform + "|" + state;
     const params = new URLSearchParams({
-        client_id: constants_1.KAKAO_CLIENT_ID,
-        redirect_uri: constants_1.KAKAO_REDIRECT_URI,
+        client_id: "2385ed6ce3415ea4324d08c9afe620d5",
+        redirect_uri: "https://821a5e1d4274.ngrok-free.app/api/v1/auth/kakao/callback",
         response_type: "code",
         state: combinedState,
         prompt: "select_account",
     });
-    return reply.redirect(`${constants_1.KAKAO_AUTH_URL}?${params.toString()}`);
+    return reply.redirect(`https://kauth.kakao.com/oauth/authorize?${params.toString()}`);
 };
 exports.kakaoAuthorizeHandler = kakaoAuthorizeHandler;
 /**
@@ -216,7 +226,7 @@ exports.kakaoAuthorizeHandler = kakaoAuthorizeHandler;
  * 카카오 인증: 사용자 동의 후 콜백 처리
  */
 const kakaoCallbackHandler = async (request, reply) => {
-    const url = new URL(request.url, constants_1.BASE_URL);
+    const url = new URL(request.url, BASE_URL);
     const code = url.searchParams.get("code");
     const combinedPlatformAndState = url.searchParams.get("state");
     if (!combinedPlatformAndState) {
@@ -228,8 +238,8 @@ const kakaoCallbackHandler = async (request, reply) => {
         state,
     });
     const redirectTo = platform === "web"
-        ? `${constants_1.BASE_URL}?${outgoingParams.toString()}`
-        : `${constants_1.APP_SCHEME}?${outgoingParams.toString()}`;
+        ? `${BASE_URL}?${outgoingParams.toString()}`
+        : `deendaily://?${outgoingParams.toString()}`;
     return reply.redirect(redirectTo);
 };
 exports.kakaoCallbackHandler = kakaoCallbackHandler;
@@ -239,19 +249,20 @@ exports.kakaoCallbackHandler = kakaoCallbackHandler;
  */
 const kakaoTokenHandler = async (request, reply) => {
     const { code } = request.body;
+    console.log("CODE", code);
     if (!code) {
         return reply.status(400).send({ error: "Missing authorization code" });
     }
-    if (!constants_1.KAKAO_CLIENT_ID || !constants_1.KAKAO_CLIENT_SECRET) {
+    if (!KAKAO_CLIENT_ID || !KAKAO_CLIENT_SECRET) {
         return reply
             .status(400)
             .send({ error: "Kakao client info not set in env" });
     }
     // Exchange code for access token
-    const tokenResponse = await axios_1.default.post(constants_1.KAKAO_TOKEN_URL, qs_1.default.stringify({
-        client_id: constants_1.KAKAO_CLIENT_ID,
-        client_secret: constants_1.KAKAO_CLIENT_SECRET,
-        redirect_uri: constants_1.KAKAO_REDIRECT_URI,
+    const tokenResponse = await axios_1.default.post("https://kauth.kakao.com/oauth/token", qs_1.default.stringify({
+        client_id: "2385ed6ce3415ea4324d08c9afe620d5",
+        client_secret: "x9TAFDhTYU2Pr31kGDQoXZ1Pah41tvYL",
+        redirect_uri: "https://821a5e1d4274.ngrok-free.app/api/v1/auth/kakao/callback",
         grant_type: "authorization_code",
         code,
     }), {
@@ -259,11 +270,12 @@ const kakaoTokenHandler = async (request, reply) => {
             "Content-Type": "application/x-www-form-urlencoded",
         },
     });
+    console.log("token response", tokenResponse);
     const data = tokenResponse.data;
     if (!data.access_token) {
         return reply.status(400).send({ error: "Missing access token from Kakao" });
     }
-    const userResponse = await axios_1.default.get(constants_1.KAKAO_USER_INFO_URL, {
+    const userResponse = await axios_1.default.get("https://kapi.kakao.com/v2/user/me", {
         headers: {
             Authorization: `Bearer ${data.access_token}`,
             "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
@@ -290,19 +302,19 @@ const kakaoTokenHandler = async (request, reply) => {
     const jti = crypto.randomUUID();
     const accessToken = await new jose.SignJWT(userInfo)
         .setProtectedHeader({ alg: "HS256" })
-        .setExpirationTime(constants_2.JWT_EXPIRATION_TIME)
+        .setExpirationTime(JWT_EXPIRATION_TIME)
         .setSubject(userInfo.sub)
         .setIssuedAt(issuedAt)
-        .sign(new TextEncoder().encode(constants_2.JWT_SECRET));
+        .sign(new TextEncoder().encode(JWT_SECRET));
     const refreshToken = await new jose.SignJWT({
         ...userInfo,
         jti,
         type: "refresh",
     })
         .setProtectedHeader({ alg: "HS256" })
-        .setExpirationTime(constants_2.REFRESH_TOKEN_EXPIRY)
+        .setExpirationTime(REFRESH_TOKEN_EXPIRY)
         .setIssuedAt(issuedAt)
-        .sign(new TextEncoder().encode(constants_2.JWT_SECRET));
+        .sign(new TextEncoder().encode(JWT_SECRET));
     return reply.send({
         accessToken,
         refreshToken,
@@ -314,14 +326,14 @@ exports.kakaoTokenHandler = kakaoTokenHandler;
  * 네이버 인증: 사용자에게 네이버 동의 페이지로 리디렉션
  */
 const naverAuthorizeHandler = async (request, reply) => {
-    if (!constants_1.NAVER_CLIENT_ID) {
+    if (!NAVER_CLIENT_ID) {
         return reply.status(500).send({ error: "NAVER_CLIENT_ID is not set" });
     }
-    const url = new URL(request.url, constants_1.BASE_URL);
+    const url = new URL(request.url, BASE_URL);
     const redirectUri = url.searchParams.get("redirect_uri");
     const state = url.searchParams.get("state");
     let platform;
-    if (redirectUri === constants_1.APP_SCHEME) {
+    if (redirectUri === "deendaily://") {
         platform = "mobile";
     }
     else {
@@ -329,12 +341,12 @@ const naverAuthorizeHandler = async (request, reply) => {
     }
     const combinedState = platform + "|" + state;
     const params = new URLSearchParams({
-        client_id: constants_1.NAVER_CLIENT_ID,
-        redirect_uri: constants_1.NAVER_REDIRECT_URI,
+        client_id: "AJcafV4oJQ2u0ptT1LeN",
+        redirect_uri: "https://821a5e1d4274.ngrok-free.app/api/v1/auth/naver/callback",
         response_type: "code",
         state: combinedState,
     });
-    return reply.redirect(`${constants_1.NAVER_AUTH_URL}?${params.toString()}`);
+    return reply.redirect(`https://nid.naver.com/oauth2.0/authorize?${params.toString()}`);
 };
 exports.naverAuthorizeHandler = naverAuthorizeHandler;
 /**
@@ -342,7 +354,7 @@ exports.naverAuthorizeHandler = naverAuthorizeHandler;
  * 네이버 인증: 사용자 동의 후 콜백 처리
  */
 const naverCallbackHandler = async (request, reply) => {
-    const url = new URL(request.url, constants_1.BASE_URL);
+    const url = new URL(request.url, BASE_URL);
     const code = url.searchParams.get("code");
     const combinedPlatformAndState = url.searchParams.get("state");
     if (!combinedPlatformAndState) {
@@ -354,8 +366,9 @@ const naverCallbackHandler = async (request, reply) => {
         state,
     });
     const redirectTo = platform === "web"
-        ? `${constants_1.BASE_URL}?${outgoingParams.toString()}`
-        : `${constants_1.APP_SCHEME}?${outgoingParams.toString()}`;
+        ? `${BASE_URL}?${outgoingParams.toString()}`
+        : `deendaily://?${outgoingParams.toString()}`;
+    console.log("REDIRECT", redirectTo);
     return reply.redirect(redirectTo);
 };
 exports.naverCallbackHandler = naverCallbackHandler;
@@ -371,16 +384,16 @@ const naverTokenHandler = async (request, reply) => {
             error_description: "Missing authorization code or state",
         });
     }
-    if (!constants_1.NAVER_CLIENT_ID || !constants_1.NAVER_CLIENT_SECRET) {
+    if (!NAVER_CLIENT_ID || !NAVER_CLIENT_SECRET) {
         return reply.status(400).send({
             error: "Naver client info not set in env",
         });
     }
     // Exchange code for access token
-    const tokenResponse = await axios_1.default.post(constants_1.NAVER_TOKEN_URL, qs_1.default.stringify({
-        client_id: constants_1.NAVER_CLIENT_ID,
-        client_secret: constants_1.NAVER_CLIENT_SECRET,
-        redirect_uri: constants_1.NAVER_REDIRECT_URI,
+    const tokenResponse = await axios_1.default.post(NAVER_TOKEN_URL, qs_1.default.stringify({
+        client_id: "AJcafV4oJQ2u0ptT1LeN",
+        client_secret: "x7C0aaMQEa",
+        redirect_uri: NAVER_REDIRECT_URI,
         grant_type: "authorization_code",
         code,
     }), {
@@ -388,13 +401,14 @@ const naverTokenHandler = async (request, reply) => {
             "Content-Type": "application/x-www-form-urlencoded",
         },
     });
+    console.log("DATA", tokenResponse);
     const data = tokenResponse.data;
     if (!data.access_token) {
         return reply.status(400).send({
             error: "Missing access token from Naver",
         });
     }
-    const userResponse = await axios_1.default.get(constants_1.NAVER_USER_INFO_URL, {
+    const userResponse = await axios_1.default.get(NAVER_USER_INFO_URL, {
         headers: {
             Authorization: `Bearer ${data.access_token}`,
             "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
@@ -415,19 +429,19 @@ const naverTokenHandler = async (request, reply) => {
     const jti = crypto.randomUUID();
     const accessToken = await new jose.SignJWT(userInfo)
         .setProtectedHeader({ alg: "HS256" })
-        .setExpirationTime(constants_2.JWT_EXPIRATION_TIME)
+        .setExpirationTime(JWT_EXPIRATION_TIME)
         .setSubject(userInfo.sub)
         .setIssuedAt(issuedAt)
-        .sign(new TextEncoder().encode(constants_2.JWT_SECRET));
+        .sign(new TextEncoder().encode(JWT_SECRET));
     const refreshToken = await new jose.SignJWT({
         ...userInfo,
         jti,
         type: "refresh",
     })
         .setProtectedHeader({ alg: "HS256" })
-        .setExpirationTime(constants_2.REFRESH_TOKEN_EXPIRY)
+        .setExpirationTime(REFRESH_TOKEN_EXPIRY)
         .setIssuedAt(issuedAt)
-        .sign(new TextEncoder().encode(constants_2.JWT_SECRET));
+        .sign(new TextEncoder().encode(JWT_SECRET));
     return reply.send({
         accessToken,
         refreshToken,
@@ -446,7 +460,7 @@ const userInfoHandler = async (request, reply) => {
         }
         const token = authHeader.split(" ")[1];
         try {
-            const verified = await jose.jwtVerify(token, new TextEncoder().encode(constants_2.JWT_SECRET));
+            const verified = await jose.jwtVerify(token, new TextEncoder().encode(JWT_SECRET));
             return reply.send({ ...verified.payload });
         }
         catch (error) {
@@ -478,15 +492,15 @@ const refreshTokenHandler = async (request, reply) => {
             if (authHeader && authHeader.startsWith("Bearer ")) {
                 const accessToken = authHeader.split(" ")[1];
                 try {
-                    const decoded = await jose.jwtVerify(accessToken, new TextEncoder().encode(constants_2.JWT_SECRET));
+                    const decoded = await jose.jwtVerify(accessToken, new TextEncoder().encode(JWT_SECRET));
                     const userInfo = decoded.payload;
                     const issuedAt = Math.floor(Date.now() / 1000);
                     const newAccessToken = await new jose.SignJWT({ ...userInfo })
                         .setProtectedHeader({ alg: "HS256" })
-                        .setExpirationTime(constants_2.JWT_EXPIRATION_TIME)
+                        .setExpirationTime(JWT_EXPIRATION_TIME)
                         .setSubject(userInfo.sub)
                         .setIssuedAt(issuedAt)
-                        .sign(new TextEncoder().encode(constants_2.JWT_SECRET));
+                        .sign(new TextEncoder().encode(JWT_SECRET));
                     return reply.send({
                         accessToken: newAccessToken,
                     });
@@ -503,7 +517,7 @@ const refreshTokenHandler = async (request, reply) => {
         }
         let decoded;
         try {
-            decoded = await jose.jwtVerify(refreshToken, new TextEncoder().encode(constants_2.JWT_SECRET));
+            decoded = await jose.jwtVerify(refreshToken, new TextEncoder().encode(JWT_SECRET));
         }
         catch (error) {
             if (error.code === "ERR_JWT_EXPIRED" ||
@@ -534,10 +548,10 @@ const refreshTokenHandler = async (request, reply) => {
         // New access token
         const newAccessToken = await new jose.SignJWT(userInfo)
             .setProtectedHeader({ alg: "HS256" })
-            .setExpirationTime(constants_2.JWT_EXPIRATION_TIME)
+            .setExpirationTime(JWT_EXPIRATION_TIME)
             .setSubject(sub)
             .setIssuedAt(issuedAt)
-            .sign(new TextEncoder().encode(constants_2.JWT_SECRET));
+            .sign(new TextEncoder().encode(JWT_SECRET));
         // New refresh token
         const newRefreshToken = await new jose.SignJWT({
             ...userInfo,
@@ -545,9 +559,9 @@ const refreshTokenHandler = async (request, reply) => {
             type: "refresh",
         })
             .setProtectedHeader({ alg: "HS256" })
-            .setExpirationTime(constants_2.REFRESH_TOKEN_EXPIRY)
+            .setExpirationTime(REFRESH_TOKEN_EXPIRY)
             .setIssuedAt(issuedAt)
-            .sign(new TextEncoder().encode(constants_2.JWT_SECRET));
+            .sign(new TextEncoder().encode(JWT_SECRET));
         return reply.send({
             accessToken: newAccessToken,
             refreshToken: newRefreshToken,
@@ -559,4 +573,48 @@ const refreshTokenHandler = async (request, reply) => {
     }
 };
 exports.refreshTokenHandler = refreshTokenHandler;
+const signup = async (request, reply) => {
+    try {
+        const { email, password, name } = request.body;
+        const tokens = await authService.signup(email, password, name);
+        return tokens;
+    }
+    catch (err) {
+        return reply.status(400).send({ error: err.message });
+    }
+};
+exports.signup = signup;
+const login = async (request, reply) => {
+    try {
+        const { email, password } = request.body;
+        const tokens = await authService.login(email, password);
+        return tokens;
+    }
+    catch (err) {
+        return reply.status(400).send({ error: err.message });
+    }
+};
+exports.login = login;
+const forgotPassword = async (request, reply) => {
+    try {
+        const { email } = request.body;
+        const resetToken = await authService.requestPasswordReset(email);
+        return { resetToken }; // For testing only. Replace with email sending logic.
+    }
+    catch (err) {
+        return reply.status(400).send({ error: err.message });
+    }
+};
+exports.forgotPassword = forgotPassword;
+const resetPassword = async (request, reply) => {
+    try {
+        const { code, newPassword } = request.body;
+        const tokens = await authService.resetPassword(code, newPassword);
+        return tokens;
+    }
+    catch (err) {
+        return reply.status(400).send({ error: err.message });
+    }
+};
+exports.resetPassword = resetPassword;
 //# sourceMappingURL=member.controller.js.map
