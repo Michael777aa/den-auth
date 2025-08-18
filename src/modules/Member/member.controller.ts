@@ -3,9 +3,7 @@ import { FastifyRequest, FastifyReply } from "fastify";
 import { MemberService } from "./member.service";
 import * as jose from "jose";
 import {
-  APP_SCHEME,
   BASE_URL,
-  GOOGLE_AUTH_URL,
   GOOGLE_CLIENT_ID,
   GOOGLE_CLIENT_SECRET,
   GOOGLE_TOKEN_URL,
