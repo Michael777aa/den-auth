@@ -2,9 +2,12 @@ import nodemailer from "nodemailer";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { authModel } from "./traditionalAuth.schema";
-import { EMAIL_PASS, EMAIL_USER } from "../../libs/utils/constants";
 import { StreamChat } from "stream-chat";
-import { streamApiKey, streamApiSecret } from "../../libs/utils/constants";
+
+const EMAIL_USER = process.env.EMAIL_USER;
+const EMAIL_PASS = process.env.EMAIL_PASS;
+const streamApiKey = process.env.STREAM_API_KEY;
+const streamApiSecret = process.env.STREAM_API_SECRET;
 
 export class AuthService {
   private static readonly SALT_ROUNDS = 10;

@@ -1,8 +1,6 @@
 // Service for finding or creating a social login member in the database.
 // 소셜 로그인 사용자를 데이터베이스에서 찾거나 새로 생성하는 서비스입니다.
-import { streamApiKey, streamApiSecret } from "../../libs/utils/constants";
 import { memberModel } from "./member.schema";
-import { StreamChat } from "stream-chat";
 
 export class MemberService {
   /**
