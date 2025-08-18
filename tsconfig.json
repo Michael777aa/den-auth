@@ -9,13 +9,14 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "moduleResolution": "node",
-    "sourceMap": true,
-    "declaration": true,
+    "sourceMap": false,                 // disable in production (smaller build)
+    "declaration": false,               // not needed unless publishing npm package
     "types": ["node"],
-    "baseUrl": ".",
+    "baseUrl": "./src",                 // IMPORTANT: set base inside src
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["*"]                      // resolves "@/modules/..." correctly
     }
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "**/*.test.ts"] }
+  "exclude": ["node_modules", "dist", "**/*.test.ts"]
+}
