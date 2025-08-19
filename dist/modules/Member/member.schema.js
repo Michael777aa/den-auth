@@ -66,4 +66,3 @@ memberSchema.index({ provider: 1, sub: 1 }, { unique: true });
 // Create the model based on the schema
 // 스키마를 기반으로 모델 생성
 exports.memberModel = mongoose_1.default.model("member", memberSchema);
-//# sourceMappingURL=member.schema.js.map

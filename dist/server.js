@@ -33,4 +33,3 @@ mongoose_1.default
     .catch((err) => {
     logger_1.default.error("ERROR on connection MongoDB", err);
 });
-//# sourceMappingURL=server.js.map

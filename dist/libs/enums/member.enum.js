@@ -8,4 +8,3 @@ var MemberProvider;
     MemberProvider["custom"] = "custom";
     MemberProvider["google"] = "google";
 })(MemberProvider || (exports.MemberProvider = MemberProvider = {}));
-//# sourceMappingURL=member.enum.js.map

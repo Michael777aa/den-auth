@@ -37,4 +37,3 @@ class MemberService {
     }
 }
 exports.MemberService = MemberService;
-//# sourceMappingURL=member.service.js.map

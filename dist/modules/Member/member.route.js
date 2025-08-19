@@ -23,4 +23,3 @@ const authRoutes = async (server) => {
     server.get("/user", member_controller_1.userInfoHandler);
 };
 exports.authRoutes = authRoutes;
-//# sourceMappingURL=member.route.js.map

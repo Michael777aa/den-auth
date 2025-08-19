@@ -44,4 +44,3 @@ async function initApp() {
     return app;
 }
 exports.default = initApp;
-//# sourceMappingURL=app.js.map
