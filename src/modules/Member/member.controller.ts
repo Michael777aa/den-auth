@@ -2,7 +2,6 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import { MemberService } from "./member.service";
 import * as jose from "jose";
-
 import { v4 as uuidv4 } from "uuid";
 import axios from "axios";
 import qs from "qs";

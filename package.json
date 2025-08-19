@@ -8,7 +8,6 @@
     "seed": "ts-node src/seed.ts",
     "build": "npm run clean && tsc && npm run copy-files",
     "clean": "rimraf dist",
-    
     "copy-files": "copyfiles -u 1 src/**/*.graphql src/**/*.ejs src/**/*.html src/**/*.txt src/uploads dist/",
     "start": "node dist/server.js",
     "start:prod": "cross-env NODE_ENV=production node dist/server.js",
@@ -48,6 +47,7 @@
     "nodemailer": "^7.0.5",
     "pino": "^9.9.0",
     "pino-pretty": "^10.2.3",
+    "qs": "^6.14.0",
     "sharp": "^0.34.1",
     "socket.io": "^4.8.1",
     "stream-chat": "^9.16.0",
