@@ -1,5 +1,7 @@
 import dotenv from "dotenv";
-dotenv.config({});
+dotenv.config({
+  path: process.env.NODE_ENV === "production" ? ".env" : ".env",
+});
 import mongoose from "mongoose";
 import initApp from "./app";
 import logger from "./libs/utils/logger";
@@ -16,7 +18,7 @@ mongoose
 
     server.listen(
       {
-        port: Number(PORT),
+        port: PORT,
         host: "0.0.0.0",
       },
       (err: any) => {

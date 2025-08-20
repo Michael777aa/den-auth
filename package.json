@@ -6,13 +6,14 @@
   "scripts": {
     "dev": "nodemon src/server.ts",
     "seed": "ts-node src/seed.ts",
-    "build": "npm run clean && tsc",
+    "build": "npm run clean && tsc && npm run copy-files",
     "clean": "rimraf dist",
+    "copy-files": "copyfiles -u 1 src/**/*.graphql src/**/*.ejs src/**/*.html src/**/*.txt src/uploads dist/",
     "start": "node dist/server.js",
-    "start:prod": "tsc && node extra.js",
+    "start:prod": "cross-env NODE_ENV=production node dist/server.js",
     "lint": "eslint . --ext .ts,.tsx --fix",
     "test": "jest",
-    "prepare": "husky install || true"
+    "prepare": "husky install"
   },
   "keywords": [
     "fastify",
@@ -40,7 +41,6 @@
     "dotenv": "^16.5.0",
     "fastify": "^5.3.2",
     "fastify-plugin": "^4.5.0",
-    "fs-extra": "^11.3.1",
     "jose": "^6.0.11",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.15.0",
@@ -81,11 +81,11 @@
     "nodemon": "^3.0.1",
     "prettier": "^3.6.2",
     "prisma": "^5.6.0",
-    "rimraf": "^5.0.10",
+    "rimraf": "^5.0.5",
     "supertest": "^6.3.4",
     "ts-jest": "^29.1.1",
     "ts-node": "^10.9.1",
-    "typescript": "^5.9.2",
+    "typescript": "^5.2.2",
     "typescript-eslint": "^8.40.0"
   },
   "engines": {
