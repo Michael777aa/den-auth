@@ -5,7 +5,7 @@ import * as jose from "jose";
 import { v4 as uuidv4 } from "uuid";
 import axios from "axios";
 import qs from "qs";
-import { AuthService } from "./auth.service";
+import { AuthService } from "./Auth.service";
 
 // Tokens
 const JWT_EXPIRATION_TIME = "20s"; // 20 seconds

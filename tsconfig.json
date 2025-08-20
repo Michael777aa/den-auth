@@ -7,7 +7,6 @@
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
     "moduleResolution": "node",
     "sourceMap": false,                 // disable in production (smaller build)
     "declaration": false,               // not needed unless publishing npm package
