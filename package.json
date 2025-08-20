@@ -6,9 +6,8 @@
   "scripts": {
     "dev": "nodemon src/server.ts",
     "seed": "ts-node src/seed.ts",
-    "build": "npm run clean && tsc && npm run copy-files",
     "clean": "rimraf dist",
-    "copy-files": "copyfiles -u 1 src/**/*.graphql src/**/*.ejs src/**/*.html src/**/*.txt dist/",
+    "build": "npm run clean && tsc && node extra.js",
     "start": "node dist/server.js",
     "start:prod": "cross-env NODE_ENV=production node dist/server.js",
     "lint": "eslint . --ext .ts,.tsx --fix",
@@ -41,6 +40,7 @@
     "dotenv": "^16.5.0",
     "fastify": "^5.3.2",
     "fastify-plugin": "^4.5.0",
+    "fs-extra": "^11.3.1",
     "jose": "^6.0.11",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.15.0",
