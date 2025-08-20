@@ -12,4 +12,4 @@ npm install
 echo "Building the application..."
 npm run build
 
-npm run start:prod
+npm run start
