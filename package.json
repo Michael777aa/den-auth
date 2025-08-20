@@ -8,12 +8,12 @@
     "seed": "ts-node src/seed.ts",
     "build": "npm run clean && tsc && npm run copy-files",
     "clean": "rimraf dist",
-    "copy-files": "copyfiles -u 1 src/**/*.graphql src/**/*.ejs src/**/*.html src/**/*.txt src/uploads dist/",
+    "copy-files": "copyfiles -u 1 src/**/*.graphql src/**/*.ejs src/**/*.html src/**/*.txt dist/",
     "start": "node dist/server.js",
     "start:prod": "cross-env NODE_ENV=production node dist/server.js",
     "lint": "eslint . --ext .ts,.tsx --fix",
     "test": "jest",
-    "prepare": "husky install"
+    "prepare": "husky install || true"
   },
   "keywords": [
     "fastify",
@@ -81,7 +81,7 @@
     "nodemon": "^3.0.1",
     "prettier": "^3.6.2",
     "prisma": "^5.6.0",
-    "rimraf": "^5.0.5",
+    "rimraf": "^5.0.10",
     "supertest": "^6.3.4",
     "ts-jest": "^29.1.1",
     "ts-node": "^10.9.1",
