@@ -1,9 +1,8 @@
 import nodemailer from "nodemailer";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-
 import { StreamChat } from "stream-chat";
-import { authModel } from "./traditionalAuth.schema";
+import { authModel } from "./traditionAuth.schema";
 
 const EMAIL_USER = process.env.EMAIL_USER;
 const EMAIL_PASS = process.env.EMAIL_PASS;
