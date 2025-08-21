@@ -17,11 +17,6 @@ export class AuthService {
   private static readonly JWT_EXPIRES_IN = "7d";
   private static readonly REFRESH_EXPIRES_IN = "30d";
 
-  /**
-   * Register a new user with email and password
-   * 이메일과 비밀번호로 새 사용자를 등록합니다.
-   */
-
   async signup(email: string, password: string, name: string) {
     try {
       const existingUser = await authModel.findOne({ email });
