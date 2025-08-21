@@ -7,9 +7,9 @@ git reset --hard
 
 
 echo "Installing dependencies..."
-npm install
 
 echo "Building the application..."
 npm run build
+echo "Starting the application..."
 
 npm run start
