@@ -7,9 +7,9 @@ const authSchema = new Schema(
     name: { type: String, required: true }, // User name / 사용자 이름
 
     picture: { type: String }, // Profile image / 프로필 이미지
-    type: {
+    userType: {
       type: String,
-      enum: ["ADMIN", "USER"],
+      enum: ["ADMIN", "USER", "MODERATOR"],
       default: "USER",
     },
     password: { type: String, select: false }, // Only for traditional auth

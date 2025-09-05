@@ -10,7 +10,7 @@ const memberSchema = new Schema(
     email: { type: String, required: true }, // User email / 사용자 이메일
     name: { type: String, required: true }, // User name / 사용자 이름
     sub: { type: String, required: true }, // Provider user ID / 소셜 제공자 사용자 ID
-    type: {
+    userType: {
       type: String,
       enum: ["ADMIN", "USER", "MODERATOR"],
       default: "USER",
