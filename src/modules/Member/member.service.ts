@@ -25,6 +25,7 @@ export class MemberService {
           picture: user.picture || "",
           provider: user.provider,
           exp: user.exp,
+          type: user.type,
         });
         await member.save();
       }

@@ -12,7 +12,7 @@ const memberSchema = new Schema(
     sub: { type: String, required: true }, // Provider user ID / 소셜 제공자 사용자 ID
     type: {
       type: String,
-      enum: ["ADMIN", "USER"],
+      enum: ["ADMIN", "USER", "MODERATOR"],
       default: "USER",
     },
     picture: { type: String }, // Profile image / 프로필 이미지
