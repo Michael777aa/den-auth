@@ -173,6 +173,7 @@ export const googleTokenHandler = async (
       picture: userInfo.picture,
       given_name: userInfo.given_name,
       family_name: userInfo.family_name,
+      userType: "USER",
       email_verified: userInfo.email_verified,
     })
       .setProtectedHeader({ alg: "HS256" })
@@ -299,7 +300,6 @@ export const kakaoTokenHandler = async (
       },
     }
   );
-  console.log("token response", tokenResponse);
 
   const data = tokenResponse.data;
 
@@ -330,6 +330,7 @@ export const kakaoTokenHandler = async (
     email: kakaoAccount?.email || `${userData.id}@kakao.com`,
     picture: profile?.profile_image_url || "https://i.imgur.com/0LKZQYM.png",
     email_verified: kakaoAccount?.is_email_verified || false,
+    userType: "USER",
     provider: "kakao",
   };
   await memberService.findOrCreateSocialMember(userInfo);
@@ -425,7 +426,6 @@ export const naverCallbackHandler = async (
     platform === "web"
       ? `${BASE_URL}?${outgoingParams.toString()}`
       : `deendaily://?${outgoingParams.toString()}`;
-  console.log("REDIRECT", redirectTo);
 
   return reply.redirect(redirectTo);
 };
@@ -495,6 +495,7 @@ export const naverTokenHandler = async (
     picture: userData.profile_image || "https://i.imgur.com/0LKZQYM.png",
     email_verified: userData.email_verified || false,
     provider: "naver",
+    userType: "USER",
   };
   await memberService.findOrCreateSocialMember(userInfo);
 
