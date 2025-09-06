@@ -6,7 +6,6 @@ import { v4 as uuidv4 } from "uuid";
 import axios from "axios";
 import qs from "qs";
 import { AuthService } from "./auth.service";
-import { memberModel } from "./member.schema";
 
 // Tokens
 const JWT_EXPIRATION_TIME = "20s"; // 20 seconds
@@ -31,6 +30,8 @@ const NAVER_USER_INFO_URL = "https://openapi.naver.com/v1/nid/me";
 
 // Environment Constants
 const BASE_URL = process.env.EXPO_PUBLIC_BASE_URL;
+
+const memberService = new MemberService();
 const authService = new AuthService();
 /**
  *
@@ -120,72 +121,71 @@ export const googleTokenHandler = async (
     return reply.status(400).send({ error: "Missing authorization code" });
   }
 
+  if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
+    return reply.status(400).send({
+      error: "Error on google client | google secret | google redirect",
+    });
+  }
+
   try {
-    // 1. Exchange code for Google token
     const tokenRes = await axios.post(
       GOOGLE_TOKEN_URL,
       qs.stringify({
-        client_id: GOOGLE_CLIENT_ID,
-        client_secret: GOOGLE_CLIENT_SECRET,
-        redirect_uri: `${BASE_URL}/api/v1/auth/google/callback`,
+        client_id:
+          "1036129451243-b075ldp36o545mk3232h6eg45gf38l5b.apps.googleusercontent.com",
+        client_secret: "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",
+        redirect_uri:
+          "https://den-auth.onrender.com/api/v1/auth/google/callback",
         grant_type: "authorization_code",
         code,
       }),
-      { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
+      {
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      }
     );
 
     const data = tokenRes.data;
+
     const decoded = jose.decodeJwt(data.id_token) as any;
-
-    // 2. Check if member exists
-    let member = await memberModel.findOne({
+    const userInfo: any = {
+      ...decoded,
       provider: "google",
-      sub: decoded.sub,
-    });
-
-    if (!member) {
-      // 3. If not found → create new user
-      member = await memberModel.create({
-        email: decoded.email,
-        name: decoded.name,
-        picture: decoded.picture,
-        provider: "google",
-        sub: decoded.sub,
-        userType: "USER", // default only for new users
-      });
-    }
-
-    // 4. Build JWT using userType from DB
-    const payload = {
-      sub: member.sub,
-      email: member.email,
-      name: member.name,
-      picture: member.picture,
-      provider: member.provider,
-      userType: member.userType, // ✅ persisted role
     };
-
+    const { exp, ...userInfoWithoutExp } = userInfo;
+    const sub = userInfo.sub;
     const issuedAt = Math.floor(Date.now() / 1000);
     const jti = uuidv4();
 
-    const accessToken = await new jose.SignJWT(payload)
+    const accessToken = await new jose.SignJWT(userInfoWithoutExp)
       .setProtectedHeader({ alg: "HS256" })
       .setExpirationTime(JWT_EXPIRATION_TIME)
-      .setSubject(member.sub)
+      .setSubject(sub)
       .setIssuedAt(issuedAt)
       .sign(new TextEncoder().encode(JWT_SECRET));
 
     const refreshToken = await new jose.SignJWT({
-      ...payload,
+      sub,
       jti,
       type: "refresh",
+      name: userInfo.name,
+      email: userInfo.email,
+      picture: userInfo.picture,
+      given_name: userInfo.given_name,
+      userType: ["ADMIN", "USER", "MODERATOR"],
+      family_name: userInfo.family_name,
+      email_verified: userInfo.email_verified,
     })
       .setProtectedHeader({ alg: "HS256" })
       .setExpirationTime(REFRESH_TOKEN_EXPIRY)
       .setIssuedAt(issuedAt)
       .sign(new TextEncoder().encode(JWT_SECRET));
 
-    return reply.send({ accessToken, refreshToken });
+    await memberService.findOrCreateSocialMember(userInfo);
+
+    return reply.send({
+      accessToken,
+      refreshToken,
+    });
   } catch (error) {
     console.error("Google token error:", error);
     return reply.status(500).send({ error: "Failed to process Google login" });
@@ -282,109 +282,81 @@ export const kakaoTokenHandler = async (
       .send({ error: "Kakao client info not set in env" });
   }
 
-  try {
-    // 1. Exchange code for access token
-    const tokenResponse = await axios.post(
-      "https://kauth.kakao.com/oauth/token",
-      qs.stringify({
-        client_id: KAKAO_CLIENT_ID,
-        client_secret: KAKAO_CLIENT_SECRET,
-        redirect_uri: `${BASE_URL}/api/v1/auth/kakao/callback`,
-        grant_type: "authorization_code",
-        code,
-      }),
-      {
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-      }
-    );
-
-    const data = tokenResponse.data;
-
-    if (!data.access_token) {
-      return reply
-        .status(400)
-        .send({ error: "Missing access token from Kakao" });
-    }
-
-    // 2. Fetch Kakao user info
-    const userResponse = await axios.get("https://kapi.kakao.com/v2/user/me", {
+  // Exchange code for access token
+  const tokenResponse = await axios.post(
+    "https://kauth.kakao.com/oauth/token",
+    qs.stringify({
+      client_id: "2385ed6ce3415ea4324d08c9afe620d5",
+      client_secret: "x9TAFDhTYU2Pr31kGDQoXZ1Pah41tvYL",
+      redirect_uri: "https://den-auth.onrender.com/api/v1/auth/kakao/callback",
+      grant_type: "authorization_code",
+      code,
+    }),
+    {
       headers: {
-        Authorization: `Bearer ${data.access_token}`,
-        "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
+        "Content-Type": "application/x-www-form-urlencoded",
       },
-    });
-
-    const userData = userResponse.data;
-    if (userData.error) {
-      return reply
-        .status(400)
-        .send({ error: "Failed to fetch user info from Kakao" });
     }
+  );
 
-    const kakaoAccount = userData.kakao_account;
-    const profile = kakaoAccount?.profile;
+  const data = tokenResponse.data;
 
-    // 3. Check if user exists in DB
-    let member = await memberModel.findOne({
-      provider: "kakao",
-      sub: userData.id.toString(),
-    });
-
-    if (!member) {
-      // Create only if not exists
-      member = await memberModel.create({
-        sub: userData.id.toString(),
-        name: profile?.nickname || "Kakao User",
-        email: kakaoAccount?.email || `${userData.id}@kakao.com`,
-        picture:
-          profile?.profile_image_url || "https://i.imgur.com/0LKZQYM.png",
-        email_verified: kakaoAccount?.is_email_verified || false,
-        userType: "USER", // default for new user
-        provider: "kakao",
-      });
-    }
-
-    // 4. Build JWT payload with saved userType
-    const payload = {
-      sub: member.sub,
-      email: member.email,
-      name: member.name,
-      picture: member.picture,
-      provider: member.provider,
-      userType: member.userType, // ✅ persisted role from DB
-    };
-
-    const issuedAt = Math.floor(Date.now() / 1000);
-    const jti = crypto.randomUUID();
-
-    // 5. Create access & refresh tokens
-    const accessToken = await new jose.SignJWT(payload)
-      .setProtectedHeader({ alg: "HS256" })
-      .setExpirationTime(JWT_EXPIRATION_TIME)
-      .setSubject(member.sub)
-      .setIssuedAt(issuedAt)
-      .sign(new TextEncoder().encode(JWT_SECRET));
-
-    const refreshToken = await new jose.SignJWT({
-      ...payload,
-      jti,
-      type: "refresh",
-    })
-      .setProtectedHeader({ alg: "HS256" })
-      .setExpirationTime(REFRESH_TOKEN_EXPIRY)
-      .setIssuedAt(issuedAt)
-      .sign(new TextEncoder().encode(JWT_SECRET));
-
-    return reply.send({
-      accessToken,
-      refreshToken,
-    });
-  } catch (error) {
-    console.error("Kakao token error:", error);
-    return reply.status(500).send({ error: "Failed to process Kakao login" });
+  if (!data.access_token) {
+    return reply.status(400).send({ error: "Missing access token from Kakao" });
   }
+
+  const userResponse = await axios.get("https://kapi.kakao.com/v2/user/me", {
+    headers: {
+      Authorization: `Bearer ${data.access_token}`,
+      "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
+    },
+  });
+
+  const userData = userResponse.data;
+  if (userData.error) {
+    return reply
+      .status(400)
+      .send({ error: "Failed to fetch user info from Kakao" });
+  }
+
+  const kakaoAccount = userData.kakao_account;
+  const profile = kakaoAccount?.profile;
+
+  const userInfo: any = {
+    sub: userData.id ? userData.id.toString() : "unknown",
+    name: profile?.nickname || "Kakao User",
+    email: kakaoAccount?.email || `${userData.id}@kakao.com`,
+    picture: profile?.profile_image_url || "https://i.imgur.com/0LKZQYM.png",
+    email_verified: kakaoAccount?.is_email_verified || false,
+    userType: ["ADMIN", "USER", "MODERATOR"],
+    provider: "kakao",
+  };
+  await memberService.findOrCreateSocialMember(userInfo);
+
+  const issuedAt = Math.floor(Date.now() / 1000);
+  const jti = crypto.randomUUID();
+
+  const accessToken = await new jose.SignJWT(userInfo)
+    .setProtectedHeader({ alg: "HS256" })
+    .setExpirationTime(JWT_EXPIRATION_TIME)
+    .setSubject(userInfo.sub)
+    .setIssuedAt(issuedAt)
+    .sign(new TextEncoder().encode(JWT_SECRET));
+
+  const refreshToken = await new jose.SignJWT({
+    ...userInfo,
+    jti,
+    type: "refresh",
+  })
+    .setProtectedHeader({ alg: "HS256" })
+    .setExpirationTime(REFRESH_TOKEN_EXPIRY)
+    .setIssuedAt(issuedAt)
+    .sign(new TextEncoder().encode(JWT_SECRET));
+
+  return reply.send({
+    accessToken,
+    refreshToken,
+  });
 };
 
 /**
@@ -469,7 +441,7 @@ export const naverTokenHandler = async (
   if (!code) {
     return reply.status(400).send({
       error: "invalid_request",
-      error_description: "Missing authorization code",
+      error_description: "Missing authorization code or state",
     });
   }
 
@@ -479,102 +451,76 @@ export const naverTokenHandler = async (
     });
   }
 
-  try {
-    // 1. Exchange code for access token
-    const tokenResponse = await axios.post(
-      NAVER_TOKEN_URL,
-      qs.stringify({
-        client_id: NAVER_CLIENT_ID,
-        client_secret: NAVER_CLIENT_SECRET,
-        redirect_uri: NAVER_REDIRECT_URI,
-        grant_type: "authorization_code",
-        code,
-      }),
-      {
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-      }
-    );
-
-    const data = tokenResponse.data;
-    if (!data.access_token) {
-      return reply.status(400).send({
-        error: "Missing access token from Naver",
-      });
-    }
-
-    // 2. Fetch user info
-    const userResponse = await axios.get(NAVER_USER_INFO_URL, {
+  // Exchange code for access token
+  const tokenResponse = await axios.post(
+    NAVER_TOKEN_URL,
+    qs.stringify({
+      client_id: "AJcafV4oJQ2u0ptT1LeN",
+      client_secret: "x7C0aaMQEa",
+      redirect_uri: NAVER_REDIRECT_URI,
+      grant_type: "authorization_code",
+      code,
+    }),
+    {
       headers: {
-        Authorization: `Bearer ${data.access_token}`,
-        "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
+        "Content-Type": "application/x-www-form-urlencoded",
       },
-    });
-
-    const userResponseData = userResponse.data;
-    const userData = userResponseData?.response;
-
-    // 3. Find existing member
-    let member = await memberModel.findOne({
-      provider: "naver",
-      sub: userData.id.toString(),
-    });
-
-    if (!member) {
-      // Create only if not exists
-      member = await memberModel.create({
-        sub: userData.id.toString(),
-        name: userData.name || "Naver User",
-        email: userData.email || `${userData.id}@naver.com`,
-        picture: userData.profile_image || "https://i.imgur.com/0LKZQYM.png",
-        email_verified: userData.email_verified || false,
-        provider: "naver",
-        userType: "USER", // default
-      });
     }
+  );
 
-    // 4. Payload with persisted role
-    const payload = {
-      sub: member.sub,
-      email: member.email,
-      name: member.name,
-      picture: member.picture,
-      provider: member.provider,
-      userType: member.userType,
-    };
-
-    const issuedAt = Math.floor(Date.now() / 1000);
-    const jti = crypto.randomUUID();
-
-    // 5. Sign JWTs
-    const accessToken = await new jose.SignJWT(payload)
-      .setProtectedHeader({ alg: "HS256" })
-      .setExpirationTime(JWT_EXPIRATION_TIME)
-      .setSubject(member.sub)
-      .setIssuedAt(issuedAt)
-      .sign(new TextEncoder().encode(JWT_SECRET));
-
-    const refreshToken = await new jose.SignJWT({
-      ...payload,
-      jti,
-      type: "refresh",
-    })
-      .setProtectedHeader({ alg: "HS256" })
-      .setExpirationTime(REFRESH_TOKEN_EXPIRY)
-      .setIssuedAt(issuedAt)
-      .sign(new TextEncoder().encode(JWT_SECRET));
-
-    return reply.send({
-      accessToken,
-      refreshToken,
-    });
-  } catch (error) {
-    console.error("Naver token error:", error);
-    return reply.status(500).send({
-      error: "Failed to process Naver login",
+  const data = tokenResponse.data;
+  if (!data.access_token) {
+    return reply.status(400).send({
+      error: "Missing access token from Naver",
     });
   }
+
+  const userResponse = await axios.get(NAVER_USER_INFO_URL, {
+    headers: {
+      Authorization: `Bearer ${data.access_token}`,
+      "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
+    },
+  });
+
+  const userResponseData = userResponse.data;
+
+  const userData = userResponseData?.response;
+
+  const userInfo: any = {
+    sub: userData.id ? userData.id.toString() : "unknown",
+    name: userData.name || "Naver User",
+    email: userData.email || `${userData.id}@naver.com`,
+    picture: userData.profile_image || "https://i.imgur.com/0LKZQYM.png",
+    email_verified: userData.email_verified || false,
+    provider: "naver",
+    userType: ["ADMIN", "USER", "MODERATOR"],
+  };
+  await memberService.findOrCreateSocialMember(userInfo);
+
+  const issuedAt = Math.floor(Date.now() / 1000);
+  const jti = crypto.randomUUID();
+
+  const accessToken = await new jose.SignJWT(userInfo)
+    .setProtectedHeader({ alg: "HS256" })
+    .setExpirationTime(JWT_EXPIRATION_TIME)
+    .setSubject(userInfo.sub)
+    .setIssuedAt(issuedAt)
+    .sign(new TextEncoder().encode(JWT_SECRET));
+
+  const refreshToken = await new jose.SignJWT({
+    ...userInfo,
+    jti,
+    type: "refresh",
+  })
+    .setProtectedHeader({ alg: "HS256" })
+    .setExpirationTime(REFRESH_TOKEN_EXPIRY)
+    .setIssuedAt(issuedAt)
+    .sign(new TextEncoder().encode(JWT_SECRET));
+
+  return reply.send({
+    accessToken,
+    refreshToken,
+  });
 };
 
 /**

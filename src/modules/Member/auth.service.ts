@@ -114,7 +114,7 @@ export class AuthService {
       id: user._id,
       email: user.email,
       name: user.name,
-      type: user.type || "user",
+      userType: user.userType || "USER",
     };
 
     const accessToken = jwt.sign(payload, AuthService.JWT_SECRET, {
