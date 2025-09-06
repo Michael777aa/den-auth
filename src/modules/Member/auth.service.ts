@@ -1,13 +1,10 @@
 import nodemailer from "nodemailer";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { StreamChat } from "stream-chat";
 import { authModel } from "./traditionAuth.schema";
 
 const EMAIL_USER = process.env.EMAIL_USER;
 const EMAIL_PASS = process.env.EMAIL_PASS;
-const streamApiKey = process.env.STREAM_API_KEY;
-const streamApiSecret = process.env.STREAM_API_SECRET;
 
 export class AuthService {
   private static readonly SALT_ROUNDS = 10;
@@ -51,15 +48,7 @@ export class AuthService {
       const isMatch = await bcrypt.compare(password, user.password);
       if (!isMatch) throw new Error("Invalid credentials");
 
-      if (!streamApiKey || !streamApiSecret) {
-        throw new Error(
-          "STREAM_API_KEY and STREAM_API_SECRET must be defined in environment variables"
-        );
-      }
-      const client = StreamChat.getInstance(streamApiKey, streamApiSecret);
-
-      const token = client.createToken(user._id.toString());
-      return { ...this.generateTokens(user), streamToken: token };
+      return { ...this.generateTokens(user) };
     } catch (error) {
       console.error("Error in login:", error);
       throw error;
