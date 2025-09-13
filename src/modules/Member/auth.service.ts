@@ -40,21 +40,19 @@ export class AuthService {
    * Login user with email and password
    * 이메일과 비밀번호로 사용자 로그인
    */
-  async login(email: string, password: string) {
+  async login(emailOrName: string, password: string) {
     try {
-      console.log("Login attempt for:", email);
       const user = await authModel
-        .findOne({ email: email.toLowerCase() })
+        .findOne({
+          $or: [{ email: emailOrName.toLowerCase() }, { name: emailOrName }],
+        })
         .select("+password");
-      console.log("User found:", !!user);
 
       if (!user || !user.password) {
-        console.log("Invalid credentials: user not found or password missing");
         throw new Error("Invalid credentials");
       }
 
       const isMatch = await bcrypt.compare(password, user.password);
-      console.log("Password match:", isMatch);
 
       if (!isMatch) {
         console.log("Invalid credentials: password mismatch");
