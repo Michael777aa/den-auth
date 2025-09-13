@@ -9,9 +9,7 @@ import { rateLimiter } from "./libs/utils/rateLimiting";
 
 // Create Fastify instance (ignores trailing slashes in routes)
 // Fastify 인스턴스 생성 (라우트의 끝 슬래시 무시)
-const app = fastify({
-  ignoreTrailingSlash: true,
-});
+const app = fastify();
 
 // Register plugins
 async function registerPlugins() {

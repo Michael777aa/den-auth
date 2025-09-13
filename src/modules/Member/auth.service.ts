@@ -42,13 +42,26 @@ export class AuthService {
    */
   async login(email: string, password: string) {
     try {
-      const user = await authModel.findOne({ email }).select("+password");
-      if (!user || !user.password) throw new Error("Invalid credentials");
+      console.log("Login attempt for:", email);
+      const user = await authModel
+        .findOne({ email: email.toLowerCase() })
+        .select("+password");
+      console.log("User found:", !!user);
+
+      if (!user || !user.password) {
+        console.log("Invalid credentials: user not found or password missing");
+        throw new Error("Invalid credentials");
+      }
 
       const isMatch = await bcrypt.compare(password, user.password);
-      if (!isMatch) throw new Error("Invalid credentials");
+      console.log("Password match:", isMatch);
 
-      return { ...this.generateTokens(user) };
+      if (!isMatch) {
+        console.log("Invalid credentials: password mismatch");
+        throw new Error("Invalid credentials");
+      }
+
+      return this.generateTokens(user);
     } catch (error) {
       console.error("Error in login:", error);
       throw error;
