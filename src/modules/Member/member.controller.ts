@@ -697,6 +697,7 @@ export const forgotPassword = async (
 ) => {
   try {
     const { email } = request.body as any;
+
     const resetToken = await authService.requestPasswordReset(email);
     return { resetToken }; // For testing only. Replace with email sending logic.
   } catch (err: any) {
