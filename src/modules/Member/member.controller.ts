@@ -379,7 +379,7 @@ export const naverAuthorizeHandler = async (
   } else {
     return reply.status(400).send({ error: "Invalid redirect URI" });
   }
-
+  //
   const combinedState = platform + "|" + state;
 
   const params = new URLSearchParams({
