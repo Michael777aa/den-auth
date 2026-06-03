@@ -387,7 +387,7 @@ export const naverAuthorizeHandler = async (
   const combinedState = platform + "|" + state;
 
   const params = new URLSearchParams({
-    client_id: "mFwTBmzizUmF4NcazV0f",
+    client_id: NAVER_CLIENT_ID,
     redirect_uri:
       "https://den-auth.onrender.com.app/api/v1/auth/naver/callback",
     response_type: "code",
