@@ -368,10 +368,6 @@ export const naverAuthorizeHandler = async (
   request: FastifyRequest,
   reply: FastifyReply
 ) => {
-  if (!NAVER_CLIENT_ID) {
-    return reply.status(500).send({ error: "NAVER_CLIENT_ID is not set" });
-  }
-
   const url = new URL(request.url, BASE_URL);
 
   const redirectUri = url.searchParams.get("redirect_uri");
