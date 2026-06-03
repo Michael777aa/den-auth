@@ -153,7 +153,7 @@ export class AuthService {
         secure: false,
         auth: {
           user: "abdullah.dev012@gmail.com",
-          pass: "fnrwuyjietcakzta",
+          pass: "fnrw uyji etca kzta",
         },
       });
 
