@@ -68,8 +68,7 @@ export const googleAuthorizeHandler = async (
   const state = platform + "|" + stateParam;
 
   const params = new URLSearchParams({
-    client_id:
-      "1036129451243-b075ldp36o545mk3232h6eg45gf38l5b.apps.googleusercontent.com",
+    client_id: GOOGLE_CLIENT_ID,
     redirect_uri: "https://den-auth.onrender.com/api/v1/auth/google/callback",
     response_type: "code",
     scope: "openid profile email",
@@ -132,9 +131,8 @@ export const googleTokenHandler = async (
     const tokenRes = await axios.post(
       GOOGLE_TOKEN_URL,
       qs.stringify({
-        client_id:
-          "1036129451243-b075ldp36o545mk3232h6eg45gf38l5b.apps.googleusercontent.com",
-        client_secret: "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",
+        client_id: GOOGLE_CLIENT_ID,
+        client_secret: GOOGLE_CLIENT_SECRET,
         redirect_uri:
           "https://den-auth.onrender.com/api/v1/auth/google/callback",
         grant_type: "authorization_code",
