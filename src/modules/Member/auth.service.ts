@@ -152,8 +152,8 @@ export class AuthService {
         port: 587,
         secure: false,
         auth: {
-          user: EMAIL_USER,
-          pass: EMAIL_PASS,
+          user: "abdullah.dev012@gmail.com",
+          pass: "fnrwuyjietcakzta",
         },
       });
 
