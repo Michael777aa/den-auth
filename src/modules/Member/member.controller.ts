@@ -117,6 +117,7 @@ export const googleTokenHandler = async (
   reply: FastifyReply
 ) => {
   const { code } = request.body as any;
+
   if (!code) {
     return reply.status(400).send({ error: "Missing authorization code" });
   }
@@ -386,12 +387,12 @@ export const naverAuthorizeHandler = async (
   const combinedState = platform + "|" + state;
 
   const params = new URLSearchParams({
-    client_id: "AJcafV4oJQ2u0ptT1LeN",
-    redirect_uri: "https://den-auth.onrender.com/api/v1/auth/naver/callback",
+    client_id: "mFwTBmzizUmF4NcazV0f",
+    redirect_uri:
+      "https://den-auth.onrender.com.app/api/v1/auth/naver/callback",
     response_type: "code",
     state: combinedState,
   });
-
   return reply.redirect(
     `https://nid.naver.com/oauth2.0/authorize?${params.toString()}`
   );
@@ -406,7 +407,6 @@ export const naverCallbackHandler = async (
   reply: FastifyReply
 ) => {
   const url = new URL(request.url, BASE_URL);
-
   const code = url.searchParams.get("code");
   const combinedPlatformAndState = url.searchParams.get("state");
 
@@ -437,7 +437,6 @@ export const naverTokenHandler = async (
   reply: FastifyReply
 ) => {
   const { code } = request.body as any;
-
   if (!code) {
     return reply.status(400).send({
       error: "invalid_request",

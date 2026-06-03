@@ -10,7 +10,10 @@ import logger from "./libs/utils/logger";
 // Database connection and server startup
 mongoose.set("strictQuery", false);
 mongoose
-  .connect(process.env.MONGO_URL as string, {})
+  .connect(
+    "mongodb+srv://juspro:jOd4m3i6oaTtGnmQ@mongodbatlas.mttyluw.mongodb.net/deen_daily?retryWrites=true&w=majority",
+    {}
+  )
   .then(async () => {
     logger.info("MongoDB successfully connected to the server");
     const PORT = process.env.PORT ?? 3000;
@@ -26,7 +29,7 @@ mongoose
           logger.error(err);
           process.exit(1);
         }
-        logger.info(`Project running on http://localhost:${PORT}`);
+        logger.info(`Project running on http://:${PORT}`);
       }
     );
   })
