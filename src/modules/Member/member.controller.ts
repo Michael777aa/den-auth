@@ -68,7 +68,8 @@ export const googleAuthorizeHandler = async (
   const state = platform + "|" + stateParam;
 
   const params = new URLSearchParams({
-    client_id: GOOGLE_CLIENT_ID,
+    client_id:
+      "1036129451243-b075ldp36o545mk3232h6eg45gf38l5b.apps.googleusercontent.com",
     redirect_uri: "https://den-auth.onrender.com/api/v1/auth/google/callback",
     response_type: "code",
     scope: "openid profile email",
@@ -131,8 +132,9 @@ export const googleTokenHandler = async (
     const tokenRes = await axios.post(
       GOOGLE_TOKEN_URL,
       qs.stringify({
-        client_id: GOOGLE_CLIENT_ID,
-        client_secret: GOOGLE_CLIENT_SECRET,
+        client_id:
+          "1036129451243-b075ldp36o545mk3232h6eg45gf38l5b.apps.googleusercontent.com",
+        client_secret: "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",
         redirect_uri:
           "https://den-auth.onrender.com/api/v1/auth/google/callback",
         grant_type: "authorization_code",
@@ -218,7 +220,7 @@ export const kakaoAuthorizeHandler = async (
   const combinedState = platform + "|" + state;
 
   const params = new URLSearchParams({
-    client_id: KAKAO_CLIENT_ID,
+    client_id: "2385ed6ce3415ea4324d08c9afe620d5",
     redirect_uri: "https://den-auth.onrender.com/api/v1/auth/kakao/callback",
     response_type: "code",
     state: combinedState,
@@ -285,8 +287,8 @@ export const kakaoTokenHandler = async (
   const tokenResponse = await axios.post(
     "https://kauth.kakao.com/oauth/token",
     qs.stringify({
-      client_id: KAKAO_CLIENT_ID,
-      client_secret: KAKAO_CLIENT_SECRET,
+      client_id: "2385ed6ce3415ea4324d08c9afe620d5",
+      client_secret: "x9TAFDhTYU2Pr31kGDQoXZ1Pah41tvYL",
       redirect_uri: "https://den-auth.onrender.com/api/v1/auth/kakao/callback",
       grant_type: "authorization_code",
       code,
@@ -377,14 +379,11 @@ export const naverAuthorizeHandler = async (
   } else {
     return reply.status(400).send({ error: "Invalid redirect URI" });
   }
-  //
+
   const combinedState = platform + "|" + state;
 
-  if (!NAVER_CLIENT_ID) {
-    return reply.status(500).send({ error: "KAKAO_CLIENT_ID is not set" });
-  }
   const params = new URLSearchParams({
-    client_id: NAVER_CLIENT_ID,
+    client_id: "mFwTBmzizUmF4NcazV0f",
     redirect_uri:
       "https://den-auth.onrender.com.app/api/v1/auth/naver/callback",
     response_type: "code",
@@ -451,8 +450,8 @@ export const naverTokenHandler = async (
   const tokenResponse = await axios.post(
     NAVER_TOKEN_URL,
     qs.stringify({
-      client_id: NAVER_CLIENT_ID,
-      client_secret: NAVER_CLIENT_SECRET,
+      client_id: "mFwTBmzizUmF4NcazV0f",
+      client_secret: "lRoXZlNUSm",
       redirect_uri: NAVER_REDIRECT_URI,
       grant_type: "authorization_code",
       code,
